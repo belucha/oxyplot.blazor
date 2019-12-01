@@ -1,0 +1,28 @@
+﻿@page "/"
+@namespace oxyplot_blazor.Pages
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>oxyplot-blazor</title>
+    <base href="~/" />
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+    <link href="css/site.css" rel="stylesheet" />
+</head>
+<body>
+    <script>
+        window.getElementClientPos = function (e) {
+            const r = e.getBoundingClientRect();
+            return [r.x, r.y, r.width, r.height];
+        };
+    </script>
+    <app>
+        @(await Html.RenderComponentAsync<App>(RenderMode.ServerPrerendered))
+    </app>
+
+    <script src="_framework/blazor.server.js"></script>
+</body>
+</html>
