@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ExampleLibrary\ExampleLibrary.csproj" />
     <ProjectReference Include="..\oxyplot.blazor\oxyplot.blazor.csproj" />
   </ItemGroup>
 

@@ -1,0 +1,42 @@
+﻿@page "/oxyplot"
+<h3>Kategorie @(Category?.Key ?? "Bitte wählen")</h3>
+<div class="dropdown">
+    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        Kategorie
+    </button>
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+        @foreach (var cat in Categories)
+        {
+            <a class="dropdown-item" @onclick="@(() => Category  = cat)">@cat.Key #@(cat.Count())</a>
+        }
+    </div>
+</div>
+@if (Category != null)
+{
+    <h3>Beispiel @(Selected?.Title ?? "Bitte wählen")</h3>
+    <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Beispiel
+        </button>
+        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            @foreach (var x in Category)
+            {
+                <a class="dropdown-item" @onclick="@(() => Selected = x)">@x.Title</a>
+            }
+        </div>
+    </div>
+}
+@if (Selected != null)
+{
+    <h3>@Selected.Category: @Selected.Title</h3>
+    <OxyPlot.Blazor.BlazorPlotView Width="800px" Height="600px" Model="Selected.PlotModel"></OxyPlot.Blazor.BlazorPlotView>
+}
+else
+{
+    <p>Please select a demo!</p>
+}
+@code {
+    public IEnumerable<IGrouping<string, ExampleLibrary.ExampleInfo>> Categories => ExampleLibrary.Examples.GetList().GroupBy(i => i.Category);
+    IGrouping<string, ExampleLibrary.ExampleInfo> Category;
+    ExampleLibrary.ExampleInfo Selected;
+}

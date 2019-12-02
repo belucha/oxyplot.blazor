@@ -9,7 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>oxyplot-blazor</title>
     <base href="~/" />
-    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/twitter-bootstrap/css/bootstrap.min.css" />
     <link href="css/site.css" rel="stylesheet" />
 </head>
 <body>
@@ -22,6 +22,10 @@
     <app>
         @(await Html.RenderComponentAsync<App>(RenderMode.ServerPrerendered))
     </app>
+    <!-- inside of body section and after the <app> tag  -->
+    <script src="~/jquery/jquery.slim.min.js"></script>
+    <script src="~/popper.js/umd/popper.min.js"></script>
+    <script src="~/twitter-bootstrap/js/bootstrap.min.js"></script>
 
     <script src="_framework/blazor.server.js"></script>
 </body>
