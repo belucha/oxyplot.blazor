@@ -1,8 +1,13 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <RootNamespace>OxyPlot.Blazor</RootNamespace>
+    <RazorLangVersion>3.0</RazorLangVersion>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/belucha/oxyplot.blazor</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/belucha/oxyplot.blazor</RepositoryUrl>
+    <Description>Blazor Binding for OxyPlot</Description>
   </PropertyGroup>
 
   <ItemGroup>

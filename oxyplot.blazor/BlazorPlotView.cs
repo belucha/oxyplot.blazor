@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace OxyPlot.Blazor
 {
-    public class BlazorPlotView : ComponentBase, IPlotView, IBlazorMouseEvents
+    public class BlazorPlotView : ComponentBase, IPlotView, IDisposable
     {
         [Inject] IJSRuntime JSRuntime { get; set; }
         [Parameter] public string Width { get; set; } = "100%";
@@ -247,22 +247,43 @@ namespace OxyPlot.Blazor
             };
             w.TextMeasurer = new PdfRenderContext(_svgPos.Width, _svgPos.Height, model.Background);
             var r = new BlazorSvgRenderContext(w);
-            w.WriteHeader(Width, Height, _svgPos.Width, _svgPos.Height, this);
+            w.WriteHeader(Width, Height, _svgPos.Width, _svgPos.Height);
             ((IPlotModel)this.currentModel).Update(true);
             ((IPlotModel)this.currentModel).Render(r, _svgPos.Width, _svgPos.Height);
             r.Complete();
         }
+
+        BlazorMouseEventHandler _mouseDown = new BlazorMouseEventHandler();
+        DotNetObjectReference<BlazorMouseEventHandler> _mouseDownJsRef;
+
+        void IDisposable.Dispose()
+        {
+            _mouseDownJsRef.Dispose();
+        }
+        class BlazorMouseEventHandler
+        {
+            
+            [JSInvokable] public void OnMouse(string eventName, double x, double y, int button, bool ctrl, bool alt, bool shift)
+            {
+                Console.WriteLine($"{eventName}, {x}, {y}, {button}, {ctrl}, {alt}, {shift}");
+            }
+        }
+
         protected async override Task OnAfterRenderAsync(bool firstRender)
         {
-            var o = await JSRuntime.InvokeAsync<double[]>("getElementClientPos", _svg).AsTask();
-            _svgPos = new OxyRect(o[0], o[1], o[2], o[3]);
+            if (firstRender)
+            {
+                _mouseDownJsRef = DotNetObjectReference.Create(_mouseDown);
+                await JSRuntime.InvokeVoidAsync("OxyPlotBlazor.attachMouseHandler", _svg, "mousedown", _mouseDownJsRef).AsTask();
+            }
         }
 
         /// <summary>
         /// Raises the <see cref="E:System.Windows.Forms.Control.MouseDown" /> event.
         /// </summary>
         /// <param name="e">A <see cref="T:System.Windows.Forms.MouseEventArgs" /> that contains the event data.</param>
-        void IBlazorMouseEvents.OnMouseDown(MouseEventArgs e)
+        [JSInvokable]
+        public void OnMouseDown(MouseEventArgs e)
         {
             var oe = TranslateMouseEventArgs(e);
             this.ActualController.HandleMouseDown(this, oe);
@@ -272,7 +293,8 @@ namespace OxyPlot.Blazor
         /// Raises the <see cref="E:System.Windows.Forms.Control.MouseMove" /> event.
         /// </summary>
         /// <param name="e">A <see cref="T:System.Windows.Forms.MouseEventArgs" /> that contains the event data.</param>
-        void IBlazorMouseEvents.OnMouseMove(MouseEventArgs e)
+        [JSInvokable]
+        public void OnMouseMove(MouseEventArgs e)
         {
             var oe = TranslateMouseEventArgs(e);
             this.ActualController.HandleMouseMove(this, oe);
@@ -282,7 +304,8 @@ namespace OxyPlot.Blazor
         /// Raises the <see cref="E:System.Windows.Forms.Control.MouseUp" /> event.
         /// </summary>
         /// <param name="e">A <see cref="T:System.Windows.Forms.MouseEventArgs" /> that contains the event data.</param>
-        void IBlazorMouseEvents.OnMouseUp(MouseEventArgs e)
+        [JSInvokable]
+        public void OnMouseUp(MouseEventArgs e)
         {
             var oe = TranslateMouseEventArgs(e);
             this.ActualController.HandleMouseUp(this, oe);

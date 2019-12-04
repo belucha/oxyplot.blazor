@@ -18,14 +18,6 @@ namespace OxyPlot.Blazor
     using Microsoft.AspNetCore.Components.Web;
     using Microsoft.AspNetCore.Components;
     using System.Threading.Tasks;
-
-    public interface IBlazorMouseEvents
-    {
-        void OnMouseDown(MouseEventArgs e);
-        void OnMouseUp(MouseEventArgs e);
-        void OnMouseMove(MouseEventArgs e);
-    }
-
     /// <summary>
     /// Represents a writer that provides easy generation of Scalable Vector Graphics files.
     /// </summary>
@@ -533,18 +525,10 @@ namespace OxyPlot.Blazor
         /// </summary>
         /// <param name="viewBoxWidth">The width.</param>
         /// <param name="viewBoxHeight">The height.</param>
-        public void WriteHeader(string width, string height, double viewBoxWidth, double viewBoxHeight, IBlazorMouseEvents interactionModel)
+        public void WriteHeader(string width, string height, double viewBoxWidth, double viewBoxHeight)
         {
             this.WriteStartElement("svg");
             // add interaction listeners
-            if (interactionModel != null)
-            {
-                // https://docs.microsoft.com/de-de/aspnet/core/blazor/components?view=aspnetcore-3.0#event-argument-types
-                _sequence++;
-                _b.AddAttribute<MouseEventArgs>(_sequence, "onmousedown", EventCallback.Factory.Create<MouseEventArgs>(interactionModel, interactionModel.OnMouseDown));
-                _b.AddAttribute<MouseEventArgs>(_sequence, "onmouseup", EventCallback.Factory.Create<MouseEventArgs>(interactionModel, interactionModel.OnMouseUp));
-                _b.AddAttribute<MouseEventArgs>(_sequence, "onmousemove", EventCallback.Factory.Create<MouseEventArgs>(interactionModel, interactionModel.OnMouseMove));
-            }
             this.WriteAttributeString("width", width);
             this.WriteAttributeString("height", height);
             this.WriteAttributeString("viewBox", "0 0 "

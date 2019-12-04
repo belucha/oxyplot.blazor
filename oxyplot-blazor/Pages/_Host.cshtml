@@ -13,12 +13,6 @@
     <link href="css/site.css" rel="stylesheet" />
 </head>
 <body>
-    <script>
-        window.getElementClientPos = function (e) {
-            const r = e.getBoundingClientRect();
-            return [r.x, r.y, r.width, r.height];
-        };
-    </script>
     <app>
         @(await Html.RenderComponentAsync<App>(RenderMode.ServerPrerendered))
     </app>
@@ -26,7 +20,7 @@
     <script src="~/jquery/jquery.slim.min.js"></script>
     <script src="~/popper.js/umd/popper.min.js"></script>
     <script src="~/twitter-bootstrap/js/bootstrap.min.js"></script>
-
+    <script src="_content/OxyPlot.Blazor/OxyPlot.Blazor.js"></script>
     <script src="_framework/blazor.server.js"></script>
 </body>
 </html>

@@ -5,9 +5,9 @@ VisualStudioVersion = 16.0.29509.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "oxyplot-demo", "oxyplot-blazor\oxyplot-demo.csproj", "{1217270C-69B4-4173-8246-816A849E876D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "oxyplot.blazor", "oxyplot.blazor\oxyplot.blazor.csproj", "{6D3CA8D9-A73E-4BFD-A4C1-2243A8DABD49}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExampleLibrary", "ExampleLibrary\ExampleLibrary.csproj", "{F9B8615C-673B-4CFB-B30B-C2799EAA336A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OxyPlot.Blazor", "OxyPlot.Blazor\OxyPlot.Blazor.csproj", "{F38E3293-C91B-4DBD-A5EE-6CE3989F119A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,14 +19,14 @@ Global
 		{1217270C-69B4-4173-8246-816A849E876D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1217270C-69B4-4173-8246-816A849E876D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1217270C-69B4-4173-8246-816A849E876D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6D3CA8D9-A73E-4BFD-A4C1-2243A8DABD49}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6D3CA8D9-A73E-4BFD-A4C1-2243A8DABD49}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6D3CA8D9-A73E-4BFD-A4C1-2243A8DABD49}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6D3CA8D9-A73E-4BFD-A4C1-2243A8DABD49}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F9B8615C-673B-4CFB-B30B-C2799EAA336A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F9B8615C-673B-4CFB-B30B-C2799EAA336A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F9B8615C-673B-4CFB-B30B-C2799EAA336A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F9B8615C-673B-4CFB-B30B-C2799EAA336A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F38E3293-C91B-4DBD-A5EE-6CE3989F119A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F38E3293-C91B-4DBD-A5EE-6CE3989F119A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F38E3293-C91B-4DBD-A5EE-6CE3989F119A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F38E3293-C91B-4DBD-A5EE-6CE3989F119A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
