@@ -15,10 +15,26 @@ namespace OxyPlot.Blazor
         /// <param name="element"></param>
         /// <param name="JSRuntime"></param>
         /// <returns></returns>
-        public static async Task<OxyRect> GetBoundingClientRectAsync(this ElementReference element, IJSRuntime JSRuntime)
+        public static async ValueTask<OxyRect> GetBoundingClientRectAsync(this ElementReference element, IJSRuntime JSRuntime)
         {
-            var o = await JSRuntime.InvokeAsync<double[]>("OxyPlotBlazor.getBoundingClientRect", element).AsTask();
+            var o = await JSRuntime.InvokeAsync<double[]>("OxyPlotBlazor.getBoundingClientRect", element);
             return new OxyRect(left: o[0], top: o[1], width: o[2], height: o[3]);
+        }
+
+        public static ValueTask SetCursor(this ElementReference element, IJSRuntime JSRuntime, string cursor)
+        {
+            return JSRuntime.InvokeVoidAsync("OxyPlotBlazor.setCursor", element, cursor);
+        }
+
+        public static ValueTask<double[]> InstallSizeChangedListener<TValue>(this ElementReference element, IJSRuntime JSRuntime, DotNetObjectReference<TValue> dotNetObjectReference, string nameOfSizeChangedCallback) where TValue : class
+        {
+            return JSRuntime.InvokeAsync<double[]>("OxyPlotBlazor.installResizeObserver", element, dotNetObjectReference, nameOfSizeChangedCallback);
+        }
+
+        public static ValueTask<double[]> InstallCallback<TValue>(this ElementReference element, IJSRuntime JSRuntime, object receiver, Action<TValue> callback)
+        {
+            var cb = EventCallback.Factory.Create<TValue>(receiver, callback);
+            return JSRuntime.InvokeAsync<double[]>("OxyPlotBlazor.installResizeObserver", element);
         }
     }
 }

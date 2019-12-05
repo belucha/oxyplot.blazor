@@ -32,7 +32,6 @@ namespace OxyPlot.Blazor
                 || Math.Abs(n.Height - _svgPos.Height) > 0.5
                 )
             {
-                System.Diagnostics.Debug.WriteLine($"New svg pos {_svgPos}!={n}");
                 _svgPos = n;
                 StateHasChanged();
             }
@@ -92,7 +91,9 @@ namespace OxyPlot.Blazor
         /// <summary>
         /// Gets the coordinates of the client area of the view.
         /// </summary>
-        public OxyRect ClientArea => OxyRect.Create(0, 0, _svgPos.Width, _svgPos.Height);
+        public OxyRect ClientArea => _svgPos;
+
+
 
         /// <summary>
         /// Gets the actual plot controller.
@@ -186,8 +187,28 @@ namespace OxyPlot.Blazor
         /// <param name="cursorType">The cursor type.</param>
         public void SetCursorType(CursorType cursorType)
         {
-            // TODO: call JSInterop to set cursor
+            // https://developer.mozilla.org/de/docs/Web/CSS/cursor
+            switch (cursorType)
+            {
+                case CursorType.Pan:
+                    _svg.SetCursor(JSRuntime, "grabbing");
+                    break;
+                case CursorType.ZoomRectangle:
+                    _svg.SetCursor(JSRuntime, "zoom-in");
+                    break;
+                case CursorType.ZoomHorizontal:
+                    _svg.SetCursor(JSRuntime, "col-resize");
+                    break;
+                case CursorType.ZoomVertical:
+                    _svg.SetCursor(JSRuntime, "row-resize");
+                    break;
+                case CursorType.Default:
+                default:
+                    _svg.SetCursor(JSRuntime, "default");
+                    break;
+            }
         }
+
 
         /// <summary>
         /// Shows the tracker.
@@ -276,7 +297,7 @@ namespace OxyPlot.Blazor
                     renderer.SequenceNumber = 11;
                     if (model.Background != OxyColors.Transparent)
                     {
-                        renderer.FillRectangle(ClientArea, model.Background);
+                        renderer.FillRectangle(OxyRect.Create(0, 0, _svgPos.Width, _svgPos.Height), model.Background);
                     }
                     renderer.SequenceNumber = 10;
                     model.Render(renderer, _svgPos.Width, _svgPos.Height);
@@ -307,24 +328,10 @@ namespace OxyPlot.Blazor
             if (firstRender)
             {
                 _self = DotNetObjectReference.Create(this);
-                UpdateSvgBoundingRect(await JSRuntime.InvokeAsync<double[]>("OxyPlotBlazor.installResizeObserver", _svg, _self, nameof(UpdateSvgBoundingRect)));
+                UpdateSvgBoundingRect(await _svg.InstallSizeChangedListener(JSRuntime, _self, nameof(UpdateSvgBoundingRect)));
             }
         }
 
-        /*
-                /// <summary>
-                /// Raises the <see cref="E:System.Windows.Forms.Control.PreviewKeyDown" /> event.
-                /// </summary>
-                /// <param name="e">A <see cref="T:System.Windows.Forms.PreviewKeyDownEventArgs" /> that contains the event data.</param>
-                protected void OnPreviewKeyDown(PreviewKeyDownEventArgs e)
-                {
-                    base.OnPreviewKeyDown(e);
-
-                    var args = new OxyKeyEventArgs { ModifierKeys = GetModifiers(), Key = e.KeyCode.Convert() };
-                    this.ActualController.HandleKeyDown(this, args);
-                }
-
-        */
         private static OxyModifierKeys TranslateModifierKeys(MouseEventArgs e)
         {
             var result = OxyModifierKeys.None;

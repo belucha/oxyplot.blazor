@@ -6,9 +6,11 @@ window.OxyPlotBlazor = {
         return [r.x, r.y, r.width, r.height];
     },
     removeResizeObserver: function (element) {
-        console.log("unobserve");
         element.resizeObserver.unobserve(element);
         element.resizeObserver = null;
+    },
+    setCursor: function (element, cursorName) {
+        element.style.cursor = cursorName;
     },
     installResizeObserver: function (element, target, method) {
         // disable context menu
