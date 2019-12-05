@@ -1,9 +1,9 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="SvgWriter.cs" company="OxyPlot">
+// <copyright file="BlazorSvgRenderContext.cs" company="OxyPlot">
 //   Copyright (c) 2014 OxyPlot contributors
 // </copyright>
 // <summary>
-//   Represents a writer that provides easy generation of Scalable Vector Graphics files.
+//   Provides a render context for scalable vector graphics output.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -18,10 +18,12 @@ namespace OxyPlot.Blazor
     using Microsoft.AspNetCore.Components.Web;
     using Microsoft.AspNetCore.Components;
     using System.Threading.Tasks;
+    using System.Text.RegularExpressions;
+
     /// <summary>
-    /// Represents a writer that provides easy generation of Scalable Vector Graphics files.
+    /// Provides a render context for scalable vector graphics output.
     /// </summary>
-    public class RenderTreeSvgWriter : IHandleEvent
+    public class BlazorSvgFragmentRenderContext : RenderContextBase
     {
         /// <summary>
         /// The clip path
@@ -34,24 +36,19 @@ namespace OxyPlot.Blazor
         private int clipPathNumber = 1;
 
         private readonly RenderTreeBuilder _b;
-        private int _sequence = 0;
 
-        int Sequence => _sequence++;
+        public int SequenceNumber { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SvgWriter" /> class.
         /// </summary>
         /// <param name="renderTreeBuilder">The render tree builder.</param>
-        /// <param name="width">The width (in user units).</param>
-        /// <param name="height">The height (in user units).</param>
-        /// <param name="isDocument">if set to <c>true</c>, the writer will write the xml headers (?xml and !DOCTYPE).</param>
-        public RenderTreeSvgWriter(RenderTreeBuilder renderTreeBuilder)
+        public BlazorSvgFragmentRenderContext(RenderTreeBuilder renderTreeBuilder)
         {
             _b = renderTreeBuilder ?? throw new ArgumentNullException(nameof(renderTreeBuilder));
             this.NumberFormat = "0.####";
+            this.RendersToScreen = true;
         }
-
-        public OxyRect ViewBox { get; set; }
         public IRenderContext TextMeasurer { get; set; }
 
         /// <summary>
@@ -59,14 +56,6 @@ namespace OxyPlot.Blazor
         /// </summary>
         /// <value>The number format.</value>
         public string NumberFormat { get; set; }
-
-        /// <summary>
-        /// Writes the end of the document.
-        /// </summary>
-        public void Complete()
-        {
-            this._b.CloseElement();
-        }
 
         /// <summary>
         /// Creates a style.
@@ -444,27 +433,27 @@ namespace OxyPlot.Blazor
         /// <param name="value">The value.</param>
         protected void WriteAttributeString(string name, double value)
         {
-            _b.AddAttribute(Sequence, name, value.ToString(this.NumberFormat, CultureInfo.InvariantCulture));
+            _b.AddAttribute(SequenceNumber, name, value.ToString(this.NumberFormat, CultureInfo.InvariantCulture));
         }
 
         protected void WriteAttributeString(string prefix, string localName, string _1, string value)
         {
-            _b.AddAttribute(Sequence, prefix + ":" + localName, value);
+            _b.AddAttribute(SequenceNumber, prefix + ":" + localName, value);
         }
 
         protected void WriteString(string value)
         {
-            _b.AddMarkupContent(Sequence, value);
+            _b.AddMarkupContent(SequenceNumber, value);
         }
 
         protected void WriteAttributeString(string name, string value)
         {
-            _b.AddAttribute(Sequence, name, value);
+            _b.AddAttribute(SequenceNumber, name, value);
         }
 
         protected void WriteStartElement(string name)
         {
-            _b.OpenElement(Sequence, name);
+            _b.OpenElement(SequenceNumber, name);
         }
 
         protected void WriteEndElement()
@@ -514,35 +503,204 @@ namespace OxyPlot.Blazor
             {
                 sb.AppendFormat(CultureInfo.InvariantCulture, fmt, p.X, p.Y);
             }
-
             return sb.ToString().Trim();
         }
 
-        public Action<ElementReference> Capture { get; set; }
+        /// <summary>
+        /// Gets or sets a value indicating whether to use a workaround for vertical text alignment to support renderers with limited support for the dominate-baseline attribute.
+        /// </summary>
+        public bool UseVerticalTextAlignmentWorkaround { get; set; }
 
         /// <summary>
-        /// Writes the header.
+        /// Draws an ellipse.
         /// </summary>
-        /// <param name="viewBoxWidth">The width.</param>
-        /// <param name="viewBoxHeight">The height.</param>
-        public void WriteHeader(string width, string height, double viewBoxWidth, double viewBoxHeight)
+        /// <param name="rect">The rectangle.</param>
+        /// <param name="fill">The fill color.</param>
+        /// <param name="stroke">The stroke color.</param>
+        /// <param name="thickness">The thickness.</param>
+        public override void DrawEllipse(OxyRect rect, OxyColor fill, OxyColor stroke, double thickness)
         {
-            this.WriteStartElement("svg");
-            // add interaction listeners
-            this.WriteAttributeString("width", width);
-            this.WriteAttributeString("height", height);
-            this.WriteAttributeString("viewBox", "0 0 "
-                + viewBoxWidth.ToString(NumberFormat, CultureInfo.InvariantCulture)
-                + " "
-                + viewBoxHeight.ToString(NumberFormat, CultureInfo.InvariantCulture)
-            );
-            this.WriteAttributeString("version", "1.1");
-            if (Capture != null)
-                this._b.AddElementReferenceCapture(Sequence, Capture);
+            this.WriteEllipse(rect.Left, rect.Top, rect.Width, rect.Height, this.CreateStyle(fill, stroke, thickness));
         }
-        Task IHandleEvent.HandleEventAsync(EventCallbackWorkItem item, object arg)
+
+        /// <summary>
+        /// Draws the polyline from the specified points.
+        /// </summary>
+        /// <param name="points">The points.</param>
+        /// <param name="stroke">The stroke color.</param>
+        /// <param name="thickness">The stroke thickness.</param>
+        /// <param name="dashArray">The dash array.</param>
+        /// <param name="lineJoin">The line join type.</param>
+        /// <param name="aliased">if set to <c>true</c> the shape will be aliased.</param>
+        public override void DrawLine(
+            IList<ScreenPoint> points,
+            OxyColor stroke,
+            double thickness,
+            double[] dashArray,
+            LineJoin lineJoin,
+            bool aliased)
         {
-            return item.InvokeAsync(arg);
+            this.WritePolyline(points, this.CreateStyle(OxyColors.Undefined, stroke, thickness, dashArray, lineJoin));
+        }
+
+        /// <summary>
+        /// Draws the polygon from the specified points. The polygon can have stroke and/or fill.
+        /// </summary>
+        /// <param name="points">The points.</param>
+        /// <param name="fill">The fill color.</param>
+        /// <param name="stroke">The stroke color.</param>
+        /// <param name="thickness">The stroke thickness.</param>
+        /// <param name="dashArray">The dash array.</param>
+        /// <param name="lineJoin">The line join type.</param>
+        /// <param name="aliased">if set to <c>true</c> the shape will be aliased.</param>
+        public override void DrawPolygon(
+            IList<ScreenPoint> points,
+            OxyColor fill,
+            OxyColor stroke,
+            double thickness,
+            double[] dashArray,
+            LineJoin lineJoin,
+            bool aliased)
+        {
+            this.WritePolygon(points, this.CreateStyle(fill, stroke, thickness, dashArray, lineJoin));
+        }
+
+        /// <summary>
+        /// Draws the rectangle.
+        /// </summary>
+        /// <param name="rect">The rectangle.</param>
+        /// <param name="fill">The fill color.</param>
+        /// <param name="stroke">The stroke color.</param>
+        /// <param name="thickness">The stroke thickness.</param>
+        public override void DrawRectangle(OxyRect rect, OxyColor fill, OxyColor stroke, double thickness)
+        {
+            this.WriteRectangle(rect.Left, rect.Top, rect.Width, rect.Height, this.CreateStyle(fill, stroke, thickness));
+        }
+
+        /// <summary>
+        /// Draws the text.
+        /// </summary>
+        /// <param name="p">The p.</param>
+        /// <param name="text">The text.</param>
+        /// <param name="c">The c.</param>
+        /// <param name="fontFamily">The font family.</param>
+        /// <param name="fontSize">Size of the font.</param>
+        /// <param name="fontWeight">The font weight.</param>
+        /// <param name="rotate">The rotate.</param>
+        /// <param name="halign">The horizontal alignment.</param>
+        /// <param name="valign">The vertical alignment.</param>
+        /// <param name="maxSize">Size of the max.</param>
+        public override void DrawText(
+            ScreenPoint p,
+            string text,
+            OxyColor c,
+            string fontFamily,
+            double fontSize,
+            double fontWeight,
+            double rotate,
+            HorizontalAlignment halign,
+            VerticalAlignment valign,
+            OxySize? maxSize)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return;
+            }
+
+            var lines = Regex.Split(text, "\r\n");
+
+            var textSize = this.MeasureText(text, fontFamily, fontSize, fontWeight);
+            var lineHeight = textSize.Height / lines.Length;
+            var lineOffset = new ScreenVector(-Math.Sin(rotate / 180.0 * Math.PI) * lineHeight, +Math.Cos(rotate / 180.0 * Math.PI) * lineHeight);
+
+            if (this.UseVerticalTextAlignmentWorkaround)
+            {
+                // offset the position, and set the valign to neutral value of `Bottom`
+                double offsetRatio = valign == VerticalAlignment.Bottom ? (1.0 - lines.Length) : valign == VerticalAlignment.Top ? 1.0 : (1.0 - (lines.Length / 2.0));
+                valign = VerticalAlignment.Bottom;
+
+                p += lineOffset * offsetRatio;
+
+                foreach (var line in lines)
+                {
+                    var size = this.MeasureText(line, fontFamily, fontSize, fontWeight);
+                    this.WriteText(p, line, c, fontFamily, fontSize, fontWeight, rotate, halign, valign);
+
+                    p += lineOffset;
+                }
+            }
+            else
+            {
+                if (valign == VerticalAlignment.Bottom)
+                {
+                    for (var i = lines.Length - 1; i >= 0; i--)
+                    {
+                        var line = lines[i];
+                        _ = this.MeasureText(line, fontFamily, fontSize, fontWeight);
+                        this.WriteText(p, line, c, fontFamily, fontSize, fontWeight, rotate, halign, valign);
+
+                        p -= lineOffset;
+                    }
+                }
+                else
+                {
+                    foreach (var line in lines)
+                    {
+                        var size = this.MeasureText(line, fontFamily, fontSize, fontWeight);
+                        this.WriteText(p, line, c, fontFamily, fontSize, fontWeight, rotate, halign, valign);
+
+                        p += lineOffset;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Measures the text.
+        /// </summary>
+        /// <param name="text">The text.</param>
+        /// <param name="fontFamily">The font family.</param>
+        /// <param name="fontSize">Size of the font.</param>
+        /// <param name="fontWeight">The font weight.</param>
+        /// <returns>The text size.</returns>
+        public override OxySize MeasureText(string text, string fontFamily, double fontSize, double fontWeight)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return OxySize.Empty;
+            }
+
+            return this.TextMeasurer.MeasureText(text, fontFamily, fontSize, fontWeight);
+        }
+
+        /// <summary>
+        /// Draws the specified portion of the specified <see cref="OxyImage" /> at the specified location and with the specified size.
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <param name="srcX">The x-coordinate of the upper-left corner of the portion of the source image to draw.</param>
+        /// <param name="srcY">The y-coordinate of the upper-left corner of the portion of the source image to draw.</param>
+        /// <param name="srcWidth">Width of the portion of the source image to draw.</param>
+        /// <param name="srcHeight">Height of the portion of the source image to draw.</param>
+        /// <param name="destX">The x-coordinate of the upper-left corner of drawn image.</param>
+        /// <param name="destY">The y-coordinate of the upper-left corner of drawn image.</param>
+        /// <param name="destWidth">The width of the drawn image.</param>
+        /// <param name="destHeight">The height of the drawn image.</param>
+        /// <param name="opacity">The opacity.</param>
+        /// <param name="interpolate">Interpolate if set to <c>true</c>.</param>
+        public override void DrawImage(
+            OxyImage source,
+            double srcX,
+            double srcY,
+            double srcWidth,
+            double srcHeight,
+            double destX,
+            double destY,
+            double destWidth,
+            double destHeight,
+            double opacity,
+            bool interpolate)
+        {
+            this.WriteImage(srcX, srcY, srcWidth, srcHeight, destX, destY, destWidth, destHeight, source);
         }
     }
 }

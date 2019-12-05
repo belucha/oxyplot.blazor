@@ -16,30 +16,27 @@ namespace OxyPlot.Blazor
         [Parameter] public string Width { get; set; } = "100%";
         [Parameter] public string Height { get; set; } = "500px";
 
+        private DotNetObjectReference<BlazorPlotView> _self;
         private ElementReference _svg;
+        private OxyRect _svgPos = new OxyRect(0, 0, 0, 0);
 
-        private OxyRect _svgPos = new OxyRect(0, 0, 800, 600);
-
-        /// <summary>
-        /// The category for the properties of this control.
-        /// </summary>
-        private const string OxyPlotCategory = "OxyPlot";
-
-        /// <summary>
-        /// The invalidate lock.
-        /// </summary>
-        private readonly object invalidateLock = new object();
-
-        /// <summary>
-        /// The model lock.
-        /// </summary>
-        private readonly object modelLock = new object();
-
-        /// <summary>
-        /// The rendering lock.
-        /// </summary>
-        private readonly object renderingLock = new object();
-
+        [JSInvokable]
+        public void UpdateSvgBoundingRect(double[] pos)
+        {
+            var n = new OxyRect(pos[0], pos[1], pos[2], pos[3]);
+            // OxyRect.Equals is very picky
+            if (false
+                || Math.Abs(n.Left - _svgPos.Left) > 0.5
+                || Math.Abs(n.Top - _svgPos.Top) > 0.5
+                || Math.Abs(n.Width - _svgPos.Width) > 0.5
+                || Math.Abs(n.Height - _svgPos.Height) > 0.5
+                )
+            {
+                System.Diagnostics.Debug.WriteLine($"New svg pos {_svgPos}!={n}");
+                _svgPos = n;
+                StateHasChanged();
+            }
+        }
         /// <summary>
         /// The current model (holding a reference to this plot view).
         /// </summary>
@@ -95,7 +92,7 @@ namespace OxyPlot.Blazor
         /// <summary>
         /// Gets the coordinates of the client area of the view.
         /// </summary>
-        public OxyRect ClientArea => _svgPos;
+        public OxyRect ClientArea => OxyRect.Create(0, 0, _svgPos.Width, _svgPos.Height);
 
         /// <summary>
         /// Gets the actual plot controller.
@@ -124,7 +121,7 @@ namespace OxyPlot.Blazor
         /// Gets or sets the plot controller.
         /// </summary>
         /// <value>The controller.</value>
-        public IPlotController Controller { get; set; }
+        [Parameter] public IPlotController Controller { get; set; }
 
         /// <summary>
         /// Hides the tracker.
@@ -159,12 +156,7 @@ namespace OxyPlot.Blazor
         /// <param name="updateData">if set to <c>true</c>, all data collections will be updated.</param>
         public void InvalidatePlot(bool updateData)
         {
-            lock (this.invalidateLock)
-            {
-                this.isModelInvalidated = true;
-                this.updateDataFlag = this.updateDataFlag || updateData;
-            }
-
+            this.updateDataFlag |= updateData;
             this.Invalidate();
         }
 
@@ -173,22 +165,19 @@ namespace OxyPlot.Blazor
         /// </summary>
         public void OnModelChanged()
         {
-            lock (this.modelLock)
+            if (this.currentModel != null)
             {
-                if (this.currentModel != null)
-                {
-                    ((IPlotModel)this.currentModel).AttachPlotView(null);
-                    this.currentModel = null;
-                }
-
-                if (this.Model != null)
-                {
-                    ((IPlotModel)this.Model).AttachPlotView(this);
-                    this.currentModel = this.Model;
-                }
+                ((IPlotModel)this.currentModel).AttachPlotView(null);
+                this.currentModel = null;
             }
 
-            this.InvalidatePlot(true);
+            if (this.Model != null)
+            {
+                ((IPlotModel)this.Model).AttachPlotView(this);
+                this.currentModel = this.Model;
+
+                this.InvalidatePlot(true);
+            }
         }
 
         /// <summary>
@@ -239,219 +228,117 @@ namespace OxyPlot.Blazor
             // TODO: set clipboardtext
         }
 
-        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        void AddEventCallback<T>(RenderTreeBuilder builder, int sequence, string name, Action<T> callback)
         {
-            var w = new RenderTreeSvgWriter(builder)
-            {
-                Capture = svgRef => _svg = svgRef,
-            };
-            w.TextMeasurer = new PdfRenderContext(_svgPos.Width, _svgPos.Height, model.Background);
-            var r = new BlazorSvgRenderContext(w);
-            w.WriteHeader(Width, Height, _svgPos.Width, _svgPos.Height);
-            ((IPlotModel)this.currentModel).Update(true);
-            ((IPlotModel)this.currentModel).Render(r, _svgPos.Width, _svgPos.Height);
-            r.Complete();
+            builder.AddEventPreventDefaultAttribute(sequence, name, true);
+            builder.AddEventStopPropagationAttribute(sequence, name, true);
+            builder.AddAttribute(sequence, name, EventCallback.Factory.Create<T>(this, callback));
         }
 
-        BlazorMouseEventHandler _mouseDown = new BlazorMouseEventHandler();
-        DotNetObjectReference<BlazorMouseEventHandler> _mouseDownJsRef;
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            // note this gist about seequence numbers
+            // https://gist.github.com/SteveSandersonMS/ec232992c2446ab9a0059dd0fbc5d0c3
+            builder.OpenElement(0, "svg");
+            builder.AddAttribute(1, "width", Width);
+            builder.AddAttribute(2, "height", Height);
+            if (_svgPos.Width > 0)
+            {
+                builder.AddAttribute(1, "viewBox", FormattableString.Invariant($"0 0 {_svgPos.Width} {_svgPos.Height}"));
+                // available event handlers
+                // https://github.com/aspnet/AspNetCore/blob/master/src/Components/Web/ref/Microsoft.AspNetCore.Components.Web.netcoreapp.cs
+                // mouse handlers
+                AddEventCallback<MouseEventArgs>(builder, 5, "onmousedown", e => ActualController.HandleMouseDown(this, TranslateMouseEventArgs(e)));
+                AddEventCallback<MouseEventArgs>(builder, 5, "onmousemove", e => ActualController.HandleMouseMove(this, TranslateMouseEventArgs(e)));
+                AddEventCallback<MouseEventArgs>(builder, 5, "onmouseup", e => ActualController.HandleMouseUp(this, TranslateMouseEventArgs(e)));
+                AddEventCallback<MouseEventArgs>(builder, 5, "onmousein", e => ActualController.HandleMouseEnter(this, TranslateMouseEventArgs(e)));
+                AddEventCallback<MouseEventArgs>(builder, 5, "onmouseout", e => ActualController.HandleMouseEnter(this, TranslateMouseEventArgs(e)));
+                // wheel, can't prevent default
+                builder.AddAttribute(5, "onmousewheel", EventCallback.Factory.Create<WheelEventArgs>(this, e => ActualController.HandleMouseWheel(this, TranslateWheelEventArgs(e))));
+                // keyboard handlers
+                AddEventCallback<KeyboardEventArgs>(builder, 5, "onkeydown", e => ActualController.HandleKeyDown(this, TranslateKeyEventArgs(e)));
+                // todo: add missing gesture support
+            }
+            builder.AddElementReferenceCapture(8, elementReference => _svg = elementReference);
+            if (_svgPos.Width > 0)
+            {
+                var model = ((IPlotModel)this.currentModel);
+                var renderer = new BlazorSvgFragmentRenderContext(builder)
+                {
+                    TextMeasurer = new PdfRenderContext(_svgPos.Width, _svgPos.Height, model?.Background ?? OxyColors.Transparent),
+                };
+
+                if (model != null)
+                {
+                    model.Update(updateDataFlag);
+                    updateDataFlag = false;
+
+                    renderer.SequenceNumber = 11;
+                    if (model.Background != OxyColors.Transparent)
+                    {
+                        renderer.FillRectangle(ClientArea, model.Background);
+                    }
+                    renderer.SequenceNumber = 10;
+                    model.Render(renderer, _svgPos.Width, _svgPos.Height);
+                }
+                // zoom rectangle
+                if (this.zoomRectangle.Width > 0 || this.zoomRectangle.Height > 0)
+                {
+                    renderer.SequenceNumber = 15;
+                    renderer.DrawRectangle(zoomRectangle, OxyColor.FromArgb(0x40, 0xFF, 0xFF, 0x00), OxyColors.Black, 0.5);
+                }
+            }
+            builder.CloseElement();
+        }
 
         void IDisposable.Dispose()
         {
-            _mouseDownJsRef.Dispose();
-        }
-        class BlazorMouseEventHandler
-        {
-            
-            [JSInvokable] public void OnMouse(string eventName, double x, double y, int button, bool ctrl, bool alt, bool shift)
+            if (_self != null)
             {
-                Console.WriteLine($"{eventName}, {x}, {y}, {button}, {ctrl}, {alt}, {shift}");
+                JSRuntime.InvokeVoidAsync("OxyPlotBlazor.removeResizeObserver", _svg);
+                _self.Dispose();
+                _self = null;
             }
+
         }
 
         protected async override Task OnAfterRenderAsync(bool firstRender)
         {
             if (firstRender)
             {
-                _mouseDownJsRef = DotNetObjectReference.Create(_mouseDown);
-                await JSRuntime.InvokeVoidAsync("OxyPlotBlazor.attachMouseHandler", _svg, "mousedown", _mouseDownJsRef).AsTask();
+                _self = DotNetObjectReference.Create(this);
+                UpdateSvgBoundingRect(await JSRuntime.InvokeAsync<double[]>("OxyPlotBlazor.installResizeObserver", _svg, _self, nameof(UpdateSvgBoundingRect)));
             }
-        }
-
-        /// <summary>
-        /// Raises the <see cref="E:System.Windows.Forms.Control.MouseDown" /> event.
-        /// </summary>
-        /// <param name="e">A <see cref="T:System.Windows.Forms.MouseEventArgs" /> that contains the event data.</param>
-        [JSInvokable]
-        public void OnMouseDown(MouseEventArgs e)
-        {
-            var oe = TranslateMouseEventArgs(e);
-            this.ActualController.HandleMouseDown(this, oe);
-        }
-
-        /// <summary>
-        /// Raises the <see cref="E:System.Windows.Forms.Control.MouseMove" /> event.
-        /// </summary>
-        /// <param name="e">A <see cref="T:System.Windows.Forms.MouseEventArgs" /> that contains the event data.</param>
-        [JSInvokable]
-        public void OnMouseMove(MouseEventArgs e)
-        {
-            var oe = TranslateMouseEventArgs(e);
-            this.ActualController.HandleMouseMove(this, oe);
-        }
-
-        /// <summary>
-        /// Raises the <see cref="E:System.Windows.Forms.Control.MouseUp" /> event.
-        /// </summary>
-        /// <param name="e">A <see cref="T:System.Windows.Forms.MouseEventArgs" /> that contains the event data.</param>
-        [JSInvokable]
-        public void OnMouseUp(MouseEventArgs e)
-        {
-            var oe = TranslateMouseEventArgs(e);
-            this.ActualController.HandleMouseUp(this, oe);
         }
 
         /*
-        /// <summary>
-        /// Raises the <see cref="E:System.Windows.Forms.Control.MouseEnter" /> event.
-        /// </summary>
-        /// <param name="e">An <see cref="T:System.EventArgs" /> that contains the event data.</param>
-        protected override void OnMouseEnter(EventArgs e)
-        {
-            base.OnMouseEnter(e);
-            this.ActualController.HandleMouseEnter(this, e.ToMouseEventArgs(GetModifiers()));
-        }
-
-        /// <summary>
-        /// Raises the <see cref="E:System.Windows.Forms.Control.MouseLeave" /> event.
-        /// </summary>
-        /// <param name="e">An <see cref="T:System.EventArgs" /> that contains the event data.</param>
-        protected override void OnMouseLeave(EventArgs e)
-        {
-            base.OnMouseLeave(e);
-            this.ActualController.HandleMouseLeave(this, e.ToMouseEventArgs(GetModifiers()));
-        }
-
-        /// <summary>
-        /// Raises the <see cref="E:System.Windows.Forms.Control.MouseWheel" /> event.
-        /// </summary>
-        /// <param name="e">A <see cref="T:System.Windows.Forms.MouseEventArgs" /> that contains the event data.</param>
-        protected override void OnMouseWheel(MouseEventArgs e)
-        {
-            base.OnMouseWheel(e);
-            this.ActualController.HandleMouseWheel(this, e.ToMouseWheelEventArgs(GetModifiers()));
-        }
-        /// <summary>
-        /// Raises the <see cref="E:System.Windows.Forms.Control.Paint" /> event.
-        /// </summary>
-        /// <param name="e">A <see cref="T:System.Windows.Forms.PaintEventArgs" /> that contains the event data.</param>
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            base.OnPaint(e);
-            try
-            {
-                lock (this.invalidateLock)
+                /// <summary>
+                /// Raises the <see cref="E:System.Windows.Forms.Control.PreviewKeyDown" /> event.
+                /// </summary>
+                /// <param name="e">A <see cref="T:System.Windows.Forms.PreviewKeyDownEventArgs" /> that contains the event data.</param>
+                protected void OnPreviewKeyDown(PreviewKeyDownEventArgs e)
                 {
-                    if (this.isModelInvalidated)
-                    {
-                        if (this.model != null)
-                        {
-                            ((IPlotModel)this.model).Update(this.updateDataFlag);
-                            this.updateDataFlag = false;
-                        }
+                    base.OnPreviewKeyDown(e);
 
-                        this.isModelInvalidated = false;
-                    }
+                    var args = new OxyKeyEventArgs { ModifierKeys = GetModifiers(), Key = e.KeyCode.Convert() };
+                    this.ActualController.HandleKeyDown(this, args);
                 }
 
-                lock (this.renderingLock)
-                {
-                    this.renderContext.SetGraphicsTarget(e.Graphics);
-
-                    if (this.model != null)
-                    {
-                        if (!this.model.Background.IsUndefined())
-                        {
-                            using (var brush = new SolidBrush(this.model.Background.ToColor()))
-                            {
-                                e.Graphics.FillRectangle(brush, e.ClipRectangle);
-                            }
-                        }
-
-                        ((IPlotModel)this.model).Render(this.renderContext, this.Width, this.Height);
-                    }
-
-                    if (this.zoomRectangle != Rectangle.Empty)
-                    {
-                        using (var zoomBrush = new SolidBrush(Color.FromArgb(0x40, 0xFF, 0xFF, 0x00)))
-                        using (var zoomPen = new Pen(Color.Black))
-                        {
-                            zoomPen.DashPattern = new float[] { 3, 1 };
-                            e.Graphics.FillRectangle(zoomBrush, this.zoomRectangle);
-                            e.Graphics.DrawRectangle(zoomPen, this.zoomRectangle);
-                        }
-                    }
-                }
-            }
-            catch (Exception paintException)
-            {
-                var trace = new StackTrace(paintException);
-                Debug.WriteLine(paintException);
-                Debug.WriteLine(trace);
-                using (var font = new Font("Arial", 10))
-                {
-                    e.Graphics.ResetTransform();
-                    e.Graphics.DrawString(
-                        "OxyPlot paint exception: " + paintException.Message, font, Brushes.Red, this.Width * 0.5f, this.Height * 0.5f, new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center });
-                }
-            }
-        }
-
-        /// <summary>
-        /// Raises the <see cref="E:System.Windows.Forms.Control.PreviewKeyDown" /> event.
-        /// </summary>
-        /// <param name="e">A <see cref="T:System.Windows.Forms.PreviewKeyDownEventArgs" /> that contains the event data.</param>
-        protected void OnPreviewKeyDown(PreviewKeyDownEventArgs e)
-        {
-            base.OnPreviewKeyDown(e);
-
-            var args = new OxyKeyEventArgs { ModifierKeys = GetModifiers(), Key = e.KeyCode.Convert() };
-            this.ActualController.HandleKeyDown(this, args);
-        }
-
-        /// <summary>
-        /// Raises the <see cref="E:System.Windows.Forms.Control.Resize" /> event.
-        /// </summary>
-        /// <param name="e">An <see cref="T:System.EventArgs" /> that contains the event data.</param>
-        protected override void OnResize(EventArgs e)
-        {
-            base.OnResize(e);
-            this.InvalidatePlot(false);
-        }
-
-        /// <summary>
-        /// Disposes the PlotView.
-        /// </summary>
-        /// <param name="disposing">Whether to dispose managed resources or not.</param>
-        protected override void Dispose(bool disposing)
-        {
-            bool disposed = this.IsDisposed;
-
-            base.Dispose(disposing);
-
-            if (disposed)
-            {
-                return;
-            }
-
-            if (disposing)
-            {
-                this.renderContext.Dispose();
-            }
-        }
         */
-
         private static OxyModifierKeys TranslateModifierKeys(MouseEventArgs e)
+        {
+            var result = OxyModifierKeys.None;
+            if (e.ShiftKey)
+                result |= OxyModifierKeys.Shift;
+            if (e.AltKey)
+                result |= OxyModifierKeys.Alt;
+            if (e.CtrlKey)
+                result |= OxyModifierKeys.Control;
+            if (e.MetaKey)
+                result |= OxyModifierKeys.Windows;
+            return result;
+        }
+        private static OxyModifierKeys TranslateModifierKeys(KeyboardEventArgs e)
         {
             var result = OxyModifierKeys.None;
             if (e.ShiftKey)
@@ -482,6 +369,20 @@ namespace OxyPlot.Blazor
                 Position = new ScreenPoint(e.ClientX - _svgPos.Left, e.ClientY - _svgPos.Top),
                 ChangedButton = TranslateButton(e),
                 ClickCount = (int)e.Detail,
+                ModifierKeys = TranslateModifierKeys(e),
+            };
+        private OxyMouseWheelEventArgs TranslateWheelEventArgs(WheelEventArgs e)
+            => new OxyMouseWheelEventArgs
+            {
+                Position = new ScreenPoint(e.ClientX - _svgPos.Left, e.ClientY - _svgPos.Top),
+                Delta = (int)(e.DeltaY != 0 ? e.DeltaY : e.DeltaX),
+                ModifierKeys = TranslateModifierKeys(e),
+            };
+
+        private OxyKeyEventArgs TranslateKeyEventArgs(KeyboardEventArgs e)
+            => new OxyKeyEventArgs
+            {
+                Key = Enum.TryParse<OxyKey>(e.Key, true, out var oxyKey) ? oxyKey : OxyKey.Unknown,
                 ModifierKeys = TranslateModifierKeys(e),
             };
     }

@@ -4,6 +4,7 @@
 @using OxyPlot.Axes
 @using OxyPlot.Series
 @using OxyPlot.Blazor
+
 <h3>Blazored Oxy Plot Test</h3>
 <BlazorPlotView Width="100%" Height="300px" Model="_model1" />
 <BlazorPlotView Width="100%" Height="300px" Model="_model2" />
@@ -83,7 +84,7 @@
             var random = new Random();
             var idx = random.Next(_data.Length);
             _data[idx] = new DataPoint(idx, random.NextDouble() * 5);
-            StateHasChanged();
+            _model2.InvalidatePlot(true);
         }
     });
 

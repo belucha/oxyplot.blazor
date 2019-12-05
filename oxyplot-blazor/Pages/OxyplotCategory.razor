@@ -29,7 +29,7 @@
 @if (Selected != null)
 {
     <h3>@Selected.Category: @Selected.Title</h3>
-    <OxyPlot.Blazor.BlazorPlotView Width="800px" Height="600px" Model="Selected.PlotModel"></OxyPlot.Blazor.BlazorPlotView>
+    <OxyPlot.Blazor.BlazorPlotView Width="800px" Height="600px" Model="Selected.PlotModel" Controller="Selected.PlotController"></OxyPlot.Blazor.BlazorPlotView>
 }
 else
 {

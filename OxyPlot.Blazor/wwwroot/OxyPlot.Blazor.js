@@ -5,13 +5,24 @@ window.OxyPlotBlazor = {
         const r = e.getBoundingClientRect();
         return [r.x, r.y, r.width, r.height];
     },
-    attachMouseHandler: function (element, eventName, target) {
-        element.addEventListener(eventName, function (event) {            
-            var dim = element.getBoundingClientRect();
-            var x = event.clientX - dim.left;
-            var y = event.clientY - dim.top;
-            target.invokeMethodAsync("OnMouse", eventName, x, y, event.button, event.ctrlKey, event.altKey, event.shiftKey);
-            event.preventDefault();
+    removeResizeObserver: function (element) {
+        console.log("unobserve");
+        element.resizeObserver.unobserve(element);
+        element.resizeObserver = null;
+    },
+    installResizeObserver: function (element, target, method) {
+        // disable context menu
+        element.oncontextmenu = ev => ev.preventDefault();
+        // create observer
+        // https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver
+        const resizeObserver = new ResizeObserver(entries => {
+            const r = element.getBoundingClientRect();
+            target.invokeMethodAsync(method, [r.x, r.y, r.width, r.height]);
         });
+        element.resizeObserver = resizeObserver;
+        resizeObserver.observe(element);
+        // return current size
+        const r = element.getBoundingClientRect();
+        return [r.x, r.y, r.width, r.height];
     },
 };
