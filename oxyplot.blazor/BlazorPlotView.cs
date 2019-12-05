@@ -13,11 +13,52 @@ namespace OxyPlot.Blazor
     public class BlazorPlotView : ComponentBase, IPlotView, IDisposable
     {
         [Inject] IJSRuntime JSRuntime { get; set; }
-        [Parameter] public string Width { get; set; } = "100%";
-        [Parameter] public string Height { get; set; } = "500px";
+        [Parameter] public string Width { get; set; }
+        [Parameter] public string Height { get; set; }
+        [Parameter]
+        public bool TrackerEnabled
+        {
+            get => _trackerEnabled;
+            set
+            {
+                if (_trackerEnabled != value)
+                {
+                    _trackerEnabled = value;
+                    if (_trackerEnabled)
+                    {
+                        StateHasChanged();
+                    }
+                }
+            }
+        }
+        /// <summary>
+        /// Gets or sets the plot controller.
+        /// </summary>
+        /// <value>The controller.</value>
+        [Parameter] public IPlotController Controller { get; set; }
+        /// <summary>
+        /// Gets or sets the model.
+        /// </summary>
+        [Parameter]
+        public PlotModel Model
+        {
+            get => model;
+            set
+            {
+                if (this.model != value)
+                {
+                    this.model = value;
+                    this.OnModelChanged();
+                }
+            }
+        }
+
+        
 
         private DotNetObjectReference<BlazorPlotView> _self;
         private ElementReference _svg;
+        private TrackerHitResult _tracker;
+        private bool _trackerEnabled;
         private OxyRect _svgPos = new OxyRect(0, 0, 0, 0);
 
         [JSInvokable]
@@ -40,11 +81,6 @@ namespace OxyPlot.Blazor
         /// The current model (holding a reference to this plot view).
         /// </summary>
         private PlotModel currentModel;
-
-        /// <summary>
-        /// The is model invalidated.
-        /// </summary>
-        private bool isModelInvalidated;
 
         /// <summary>
         /// The model.
@@ -93,8 +129,6 @@ namespace OxyPlot.Blazor
         /// </summary>
         public OxyRect ClientArea => _svgPos;
 
-
-
         /// <summary>
         /// Gets the actual plot controller.
         /// </summary>
@@ -102,39 +136,25 @@ namespace OxyPlot.Blazor
         public IPlotController ActualController => this.Controller ?? (this.defaultController ?? (this.defaultController = new PlotController()));
 
         /// <summary>
-        /// Gets or sets the model.
+        /// Shows the tracker.
         /// </summary>
-        [Parameter]
-        public PlotModel Model
+        /// <param name="data">The data.</param>
+        public void ShowTracker(TrackerHitResult data)
         {
-            get => model;
-            set
+            if (_tracker != data)
             {
-                if (this.model != value)
-                {
-                    this.model = value;
-                    this.OnModelChanged();
-                }
+                _tracker = data;
+                StateHasChanged();
             }
+            StateHasChanged();
         }
-
-        /// <summary>
-        /// Gets or sets the plot controller.
-        /// </summary>
-        /// <value>The controller.</value>
-        [Parameter] public IPlotController Controller { get; set; }
 
         /// <summary>
         /// Hides the tracker.
         /// </summary>
         public void HideTracker()
         {
-            /*
-            if (this.trackerLabel != null)
-            {
-                this.trackerLabel.Visible = false;
-            }
-            */
+            ShowTracker(null);
         }
 
         /// <summary>
@@ -186,49 +206,7 @@ namespace OxyPlot.Blazor
         /// </summary>
         /// <param name="cursorType">The cursor type.</param>
         public void SetCursorType(CursorType cursorType)
-        {
-            // https://developer.mozilla.org/de/docs/Web/CSS/cursor
-            switch (cursorType)
-            {
-                case CursorType.Pan:
-                    _svg.SetCursor(JSRuntime, "grabbing");
-                    break;
-                case CursorType.ZoomRectangle:
-                    _svg.SetCursor(JSRuntime, "zoom-in");
-                    break;
-                case CursorType.ZoomHorizontal:
-                    _svg.SetCursor(JSRuntime, "col-resize");
-                    break;
-                case CursorType.ZoomVertical:
-                    _svg.SetCursor(JSRuntime, "row-resize");
-                    break;
-                case CursorType.Default:
-                default:
-                    _svg.SetCursor(JSRuntime, "default");
-                    break;
-            }
-        }
-
-
-        /// <summary>
-        /// Shows the tracker.
-        /// </summary>
-        /// <param name="data">The data.</param>
-        public void ShowTracker(TrackerHitResult data)
-        {
-            // TODO: show hide tracker
-            /*
-            if (this.trackerLabel == null)
-            {
-                this.trackerLabel = new Label { Parent = this, BackColor = Color.LightSkyBlue, AutoSize = true, Padding = new Padding(5) };
-            }
-
-            this.trackerLabel.Text = data.ToString();
-            this.trackerLabel.Top = (int)data.Position.Y - this.trackerLabel.Height;
-            this.trackerLabel.Left = (int)data.Position.X - (this.trackerLabel.Width / 2);
-            this.trackerLabel.Visible = true;
-            */
-        }
+            => _svg.SetCursor(JSRuntime, TranslateCursorType(cursorType));
 
         /// <summary>
         /// Shows the zoom rectangle.
@@ -246,7 +224,9 @@ namespace OxyPlot.Blazor
         /// <param name="text">The text.</param>
         public void SetClipboardText(string text)
         {
-            // TODO: set clipboardtext
+            // todo: not tested yet, don't know when it is called
+            // https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText
+            JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
         }
 
         void AddEventCallback<T>(RenderTreeBuilder builder, int sequence, string name, Action<T> callback)
@@ -261,8 +241,14 @@ namespace OxyPlot.Blazor
             // note this gist about seequence numbers
             // https://gist.github.com/SteveSandersonMS/ec232992c2446ab9a0059dd0fbc5d0c3
             builder.OpenElement(0, "svg");
-            builder.AddAttribute(1, "width", Width);
-            builder.AddAttribute(2, "height", Height);
+            if (!String.IsNullOrEmpty(Width))
+            {
+                builder.AddAttribute(1, "width", Width);
+            }
+            if (!String.IsNullOrEmpty(Height))
+            {
+                builder.AddAttribute(2, "height", Height);
+            }
             if (_svgPos.Width > 0)
             {
                 builder.AddAttribute(1, "viewBox", FormattableString.Invariant($"0 0 {_svgPos.Width} {_svgPos.Height}"));
@@ -276,8 +262,8 @@ namespace OxyPlot.Blazor
                 AddEventCallback<MouseEventArgs>(builder, 5, "onmouseout", e => ActualController.HandleMouseEnter(this, TranslateMouseEventArgs(e)));
                 // wheel, can't prevent default
                 builder.AddAttribute(5, "onmousewheel", EventCallback.Factory.Create<WheelEventArgs>(this, e => ActualController.HandleMouseWheel(this, TranslateWheelEventArgs(e))));
-                // keyboard handlers
-                AddEventCallback<KeyboardEventArgs>(builder, 5, "onkeydown", e => ActualController.HandleKeyDown(this, TranslateKeyEventArgs(e)));
+                // todo: keyboard handlers --> they don't seem to work
+                AddEventCallback<KeyboardEventArgs>(builder, 5, "onkeypress", e => ActualController.HandleKeyDown(this, TranslateKeyEventArgs(e)));
                 // todo: add missing gesture support
             }
             builder.AddElementReferenceCapture(8, elementReference => _svg = elementReference);
@@ -310,6 +296,22 @@ namespace OxyPlot.Blazor
                 }
             }
             builder.CloseElement();
+            // tracker
+            if (_tracker != null && _trackerEnabled)
+            {
+                builder.OpenElement(20, "div");
+                builder.AddAttribute(21, "class", "OxyPlotTracker");
+                /*                
+                                builder.AddAttribute(25, "style",
+                                    FormattableString.Invariant(@$"
+                position: absolute;
+                left: {_svgPos.Left + _tracker.Position.X:F0}px;
+                top: {_svgPos.Top + _tracker.Position.Y:F0}px;
+                "));
+                */
+                builder.AddContent(30, _tracker.Text);
+                builder.CloseElement();
+            }
         }
 
         void IDisposable.Dispose()
@@ -331,7 +333,6 @@ namespace OxyPlot.Blazor
                 UpdateSvgBoundingRect(await _svg.InstallSizeChangedListener(JSRuntime, _self, nameof(UpdateSvgBoundingRect)));
             }
         }
-
         private static OxyModifierKeys TranslateModifierKeys(MouseEventArgs e)
         {
             var result = OxyModifierKeys.None;
@@ -360,15 +361,13 @@ namespace OxyPlot.Blazor
         }
 
         private static OxyMouseButton TranslateButton(MouseEventArgs e)
-        {
-            switch (e.Button)
+            => e.Button switch
             {
-                case 0: return OxyMouseButton.Left;
-                case 1: return OxyMouseButton.Middle;
-                case 2: return OxyMouseButton.Right;
-                default: return OxyMouseButton.None;
-            }
-        }
+                0 => OxyMouseButton.Left,
+                1 => OxyMouseButton.Middle,
+                2 => OxyMouseButton.Right,
+                _ => OxyMouseButton.None,
+            };
 
         private OxyMouseDownEventArgs TranslateMouseEventArgs(MouseEventArgs e)
             => new OxyMouseDownEventArgs
@@ -386,11 +385,29 @@ namespace OxyPlot.Blazor
                 ModifierKeys = TranslateModifierKeys(e),
             };
 
-        private OxyKeyEventArgs TranslateKeyEventArgs(KeyboardEventArgs e)
+        private static OxyKeyEventArgs TranslateKeyEventArgs(KeyboardEventArgs e)
             => new OxyKeyEventArgs
             {
                 Key = Enum.TryParse<OxyKey>(e.Key, true, out var oxyKey) ? oxyKey : OxyKey.Unknown,
                 ModifierKeys = TranslateModifierKeys(e),
             };
+
+        /// <summary>
+        /// translate OxyPlot Cursor type to browser cursor type name
+        /// </summary>
+        /// <see cref="https://developer.mozilla.org/de/docs/Web/CSS/cursor"/>
+        /// <param name="cursorType"></param>
+        /// <returns>browser css class cursor type</returns>
+        private static string TranslateCursorType(CursorType cursorType) =>
+            cursorType switch
+            {
+                CursorType.Pan => "grabbing",
+                CursorType.ZoomRectangle => "zoom-in",
+                CursorType.ZoomHorizontal => "col-resize",
+                CursorType.ZoomVertical => "row-resize",
+                CursorType.Default => "default",
+                _ => "default",
+            };
+
     }
 }
