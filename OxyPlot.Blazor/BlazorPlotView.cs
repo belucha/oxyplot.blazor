@@ -58,7 +58,7 @@ namespace OxyPlot.Blazor
         private DotNetObjectReference<BlazorPlotView> _self;
         private ElementReference _svg;
         private TrackerHitResult _tracker;
-        private bool _trackerEnabled;
+        private bool _trackerEnabled = true;
         private OxyRect _svgPos = new OxyRect(0, 0, 0, 0);
 
         [JSInvokable]
@@ -294,24 +294,14 @@ namespace OxyPlot.Blazor
                     renderer.SequenceNumber = 15;
                     renderer.DrawRectangle(zoomRectangle, OxyColor.FromArgb(0x40, 0xFF, 0xFF, 0x00), OxyColors.Black, 0.5);
                 }
+                // tracker
+                if (_tracker != null && _trackerEnabled)
+                {
+                    renderer.SequenceNumber = 20;
+                    renderer.DrawMultilineText(_tracker.Position, _tracker.Text, OxyColors.Black);
+                }
             }
             builder.CloseElement();
-            // tracker
-            if (_tracker != null && _trackerEnabled)
-            {
-                builder.OpenElement(20, "div");
-                builder.AddAttribute(21, "class", "OxyPlotTracker");
-                /*                
-                                builder.AddAttribute(25, "style",
-                                    FormattableString.Invariant(@$"
-                position: absolute;
-                left: {_svgPos.Left + _tracker.Position.X:F0}px;
-                top: {_svgPos.Top + _tracker.Position.Y:F0}px;
-                "));
-                */
-                builder.AddContent(30, _tracker.Text);
-                builder.CloseElement();
-            }
         }
 
         void IDisposable.Dispose()
