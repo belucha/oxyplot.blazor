@@ -53,7 +53,7 @@ namespace OxyPlot.Blazor
             }
         }
 
-        
+
 
         private DotNetObjectReference<BlazorPlotView> _self;
         private ElementReference _svg;
@@ -298,6 +298,9 @@ namespace OxyPlot.Blazor
                 if (_tracker != null && _trackerEnabled)
                 {
                     renderer.SequenceNumber = 20;
+                    var s = renderer.MeasureText(_tracker.Text, null, 10, 400);
+                    var r = new OxyRect(_tracker.Position, s).Inflate(50, 5).Offset(20, 0);
+                    renderer.FillRectangle(r, OxyColors.White);
                     renderer.DrawMultilineText(_tracker.Position, _tracker.Text, OxyColors.Black);
                 }
             }
