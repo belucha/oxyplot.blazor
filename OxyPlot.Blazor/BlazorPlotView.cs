@@ -13,6 +13,8 @@ namespace OxyPlot.Blazor
     public class BlazorPlotView : ComponentBase, IPlotView, IDisposable
     {
         [Inject] IJSRuntime JSRuntime { get; set; }
+        [Parameter]
+        public string PreserveAspectRation { get; set; } = "none";
         [Parameter] public string Width { get; set; }
         [Parameter] public string Height { get; set; }
         [Parameter]
@@ -245,13 +247,18 @@ namespace OxyPlot.Blazor
             {
                 builder.AddAttribute(1, "width", Width);
             }
+
             if (!String.IsNullOrEmpty(Height))
             {
                 builder.AddAttribute(2, "height", Height);
             }
             if (_svgPos.Width > 0)
             {
-                builder.AddAttribute(1, "viewBox", FormattableString.Invariant($"0 0 {_svgPos.Width} {_svgPos.Height}"));
+                builder.AddAttribute(3, "viewBox", FormattableString.Invariant($"0 0 {_svgPos.Width} {_svgPos.Height}"));
+                if (!String.IsNullOrEmpty(PreserveAspectRation))
+                {
+                    builder.AddAttribute(4, "preserveAspectRatio", PreserveAspectRation);
+                }
                 // available event handlers
                 // https://github.com/aspnet/AspNetCore/blob/master/src/Components/Web/ref/Microsoft.AspNetCore.Components.Web.netcoreapp.cs
                 // mouse handlers
@@ -260,10 +267,12 @@ namespace OxyPlot.Blazor
                 AddEventCallback<MouseEventArgs>(builder, 5, "onmouseup", e => ActualController.HandleMouseUp(this, TranslateMouseEventArgs(e)));
                 AddEventCallback<MouseEventArgs>(builder, 5, "onmousein", e => ActualController.HandleMouseEnter(this, TranslateMouseEventArgs(e)));
                 AddEventCallback<MouseEventArgs>(builder, 5, "onmouseout", e => ActualController.HandleMouseEnter(this, TranslateMouseEventArgs(e)));
-                // wheel, can't prevent default
-                builder.AddAttribute(5, "onmousewheel", EventCallback.Factory.Create<WheelEventArgs>(this, e => ActualController.HandleMouseWheel(this, TranslateWheelEventArgs(e))));
+                // wheel, prevent default does not work
+//                builder.AddEventPreventDefaultAttribute(6, "onmousewheel", true);
+//                builder.AddEventStopPropagationAttribute(6, "onmousewheel", true);
+                builder.AddAttribute(6, "onmousewheel", EventCallback.Factory.Create<WheelEventArgs>(this, e => ActualController.HandleMouseWheel(this, TranslateWheelEventArgs(e))));
                 // todo: keyboard handlers --> they don't seem to work
-                AddEventCallback<KeyboardEventArgs>(builder, 5, "onkeypress", e => ActualController.HandleKeyDown(this, TranslateKeyEventArgs(e)));
+                //                AddEventCallback<KeyboardEventArgs>(builder, 5, "onkeypress", e => ActualController.HandleKeyDown(this, TranslateKeyEventArgs(e)));
                 // todo: add missing gesture support
             }
             builder.AddElementReferenceCapture(8, elementReference => _svg = elementReference);
@@ -311,21 +320,23 @@ namespace OxyPlot.Blazor
         {
             if (_self != null)
             {
-                JSRuntime.InvokeVoidAsync("OxyPlotBlazor.removeResizeObserver", _svg);
+                _svg.UninstallSizeChangedListener(JSRuntime);
                 _self.Dispose();
                 _self = null;
             }
 
         }
 
-        protected async override Task OnAfterRenderAsync(bool firstRender)
+        protected override void OnInitialized()
         {
-            if (firstRender)
-            {
-                _self = DotNetObjectReference.Create(this);
-                UpdateSvgBoundingRect(await _svg.InstallSizeChangedListener(JSRuntime, _self, nameof(UpdateSvgBoundingRect)));
-            }
+            _self = DotNetObjectReference.Create(this);
         }
+
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            await _svg.InstallSizeChangedListener(JSRuntime, _self, nameof(UpdateSvgBoundingRect));
+        }
+
         private static OxyModifierKeys TranslateModifierKeys(MouseEventArgs e)
         {
             var result = OxyModifierKeys.None;

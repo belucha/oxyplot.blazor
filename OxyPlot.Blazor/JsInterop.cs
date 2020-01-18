@@ -26,10 +26,12 @@ namespace OxyPlot.Blazor
             return JSRuntime.InvokeVoidAsync("OxyPlotBlazor.setCursor", element, cursor);
         }
 
-        public static ValueTask<double[]> InstallSizeChangedListener<TValue>(this ElementReference element, IJSRuntime JSRuntime, DotNetObjectReference<TValue> dotNetObjectReference, string nameOfSizeChangedCallback) where TValue : class
+        public static ValueTask InstallSizeChangedListener<T>(this ElementReference element, IJSRuntime JSRuntime, DotNetObjectReference<T> dotNetObjectReference, string nameOfSizeChangedCallback) where T: class
         {
-            return JSRuntime.InvokeAsync<double[]>("OxyPlotBlazor.installResizeObserver", element, dotNetObjectReference, nameOfSizeChangedCallback);
+            return JSRuntime.InvokeVoidAsync("OxyPlotBlazor.installResizeObserver", element, dotNetObjectReference, nameOfSizeChangedCallback);
         }
+        public static ValueTask UninstallSizeChangedListener(this ElementReference element, IJSRuntime JSRuntime) 
+            => JSRuntime.InvokeVoidAsync("OxyPlotBlazor.removeResizeObserver", element);
 
         public static ValueTask<double[]> InstallCallback<TValue>(this ElementReference element, IJSRuntime JSRuntime, object receiver, Action<TValue> callback)
         {
