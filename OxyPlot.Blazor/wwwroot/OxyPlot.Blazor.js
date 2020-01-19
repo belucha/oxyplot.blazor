@@ -21,8 +21,6 @@ window.OxyPlotBlazor = {
         if (!element.resizeObserver) {
             window.OxyPlotBlazor.observers++;
             //console.log("install resize observer", window.OxyPlotBlazor.observers)
-            // disable context menu
-            element.addEventListener('oncontextmenu', ev => ev.preventDefault()); 
             // DISABLE SCROLL
             // https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
             // Test via a getter in the options object to see if the passive property is accessed
@@ -39,6 +37,11 @@ window.OxyPlotBlazor = {
             } catch (e) { }
             // Use our detect's results. passive applied if supported, capture will be false either way.
             element.addEventListener('onmousewheel', ev => ev.preventDefault(), ev => ev.preventDefault(), supportsPassive ? { passive: true } : false); 
+            // disable context menu
+            element.addEventListener('contextmenu', ev => {
+                ev.preventDefault();
+                return false;
+            }); 
             // create observer
             // https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver
             const resizeObserver = new ResizeObserver(entries => {
