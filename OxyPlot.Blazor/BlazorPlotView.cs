@@ -13,8 +13,7 @@ namespace OxyPlot.Blazor
     public class BlazorPlotView : ComponentBase, IPlotView, IDisposable
     {
         [Inject] IJSRuntime JSRuntime { get; set; }
-        [Parameter]
-        public string PreserveAspectRation { get; set; } = "none";
+        [Parameter] public string PreserveAspectRation { get; set; } = "none";
         [Parameter] public string Width { get; set; }
         [Parameter] public string Height { get; set; }
         [Parameter]
@@ -54,8 +53,6 @@ namespace OxyPlot.Blazor
                 }
             }
         }
-
-
 
         private DotNetObjectReference<BlazorPlotView> _self;
         private ElementReference _svg;
@@ -268,8 +265,8 @@ namespace OxyPlot.Blazor
                 AddEventCallback<MouseEventArgs>(builder, 5, "onmousein", e => ActualController.HandleMouseEnter(this, TranslateMouseEventArgs(e)));
                 AddEventCallback<MouseEventArgs>(builder, 5, "onmouseout", e => ActualController.HandleMouseEnter(this, TranslateMouseEventArgs(e)));
                 // wheel, prevent default does not work
-//                builder.AddEventPreventDefaultAttribute(6, "onmousewheel", true);
-//                builder.AddEventStopPropagationAttribute(6, "onmousewheel", true);
+                //                builder.AddEventPreventDefaultAttribute(6, "onmousewheel", true);
+                //                builder.AddEventStopPropagationAttribute(6, "onmousewheel", true);
                 builder.AddAttribute(6, "onmousewheel", EventCallback.Factory.Create<WheelEventArgs>(this, e => ActualController.HandleMouseWheel(this, TranslateWheelEventArgs(e))));
                 // todo: keyboard handlers --> they don't seem to work
                 //                AddEventCallback<KeyboardEventArgs>(builder, 5, "onkeypress", e => ActualController.HandleKeyDown(this, TranslateKeyEventArgs(e)));
@@ -316,24 +313,25 @@ namespace OxyPlot.Blazor
             builder.CloseElement();
         }
 
-        void IDisposable.Dispose()
+        async void IDisposable.Dispose()
         {
+            // https://blazor-university.com/javascript-interop/calling-dotnet-from-javascript/lifetimes-and-memory-leaks/
+            GC.SuppressFinalize(this);
             if (_self != null)
             {
-                _svg.UninstallSizeChangedListener(JSRuntime);
+                await _svg.UninstallSizeChangedListener(JSRuntime);
                 _self.Dispose();
                 _self = null;
             }
 
         }
 
-        protected override void OnInitialized()
-        {
-            _self = DotNetObjectReference.Create(this);
-        }
-
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
+            if (firstRender)
+            {
+                _self = DotNetObjectReference.Create(this);
+            }
             await _svg.InstallSizeChangedListener(JSRuntime, _self, nameof(UpdateSvgBoundingRect));
         }
 
