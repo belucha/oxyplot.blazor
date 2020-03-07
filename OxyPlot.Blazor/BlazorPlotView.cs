@@ -319,7 +319,7 @@ namespace OxyPlot.Blazor
             GC.SuppressFinalize(this);
             if (_self != null)
             {
-                await _svg.UninstallSizeChangedListener(JSRuntime);
+                //await _svg.UninstallSizeChangedListener(JSRuntime);
                 _self.Dispose();
                 _self = null;
             }
