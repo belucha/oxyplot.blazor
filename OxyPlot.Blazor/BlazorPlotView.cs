@@ -12,6 +12,7 @@ namespace OxyPlot.Blazor
 {
     public class BlazorPlotView : ComponentBase, IPlotView, IDisposable
     {
+        readonly System.Timers.Timer _timer = new System.Timers.Timer(500) { Enabled = false, };
         [Inject] IJSRuntime JSRuntime { get; set; }
         [Parameter] public string PreserveAspectRation { get; set; } = "none";
         [Parameter] public string Width { get; set; }
@@ -54,16 +55,14 @@ namespace OxyPlot.Blazor
             }
         }
 
-        private DotNetObjectReference<BlazorPlotView> _self;
         private ElementReference _svg;
         private TrackerHitResult _tracker;
         private bool _trackerEnabled = true;
         private OxyRect _svgPos = new OxyRect(0, 0, 0, 0);
 
-        [JSInvokable]
-        public void UpdateSvgBoundingRect(double[] pos)
+        async void UpdateSvgBoundingRect(object _1, EventArgs _2)
         {
-            var n = new OxyRect(pos[0], pos[1], pos[2], pos[3]);
+            var n = await _svg.GetBoundingClientRectAsync(JSRuntime).ConfigureAwait(false);
             // OxyRect.Equals is very picky
             if (false
                 || Math.Abs(n.Left - _svgPos.Left) > 0.5
@@ -73,7 +72,7 @@ namespace OxyPlot.Blazor
                 )
             {
                 _svgPos = n;
-                StateHasChanged();
+                InvokeAsync(() => StateHasChanged());
             }
         }
         /// <summary>
@@ -313,26 +312,14 @@ namespace OxyPlot.Blazor
             builder.CloseElement();
         }
 
-        async void IDisposable.Dispose()
-        {
-            // https://blazor-university.com/javascript-interop/calling-dotnet-from-javascript/lifetimes-and-memory-leaks/
-            GC.SuppressFinalize(this);
-            if (_self != null)
-            {
-                //await _svg.UninstallSizeChangedListener(JSRuntime);
-                _self.Dispose();
-                _self = null;
-            }
-
-        }
-
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
-            if (firstRender)
+            if (firstRender && _timer.Enabled==false)
             {
-                _self = DotNetObjectReference.Create(this);
+                _timer.Elapsed += UpdateSvgBoundingRect;
+                _timer.Enabled = true;
             }
-            await _svg.InstallSizeChangedListener(JSRuntime, _self, nameof(UpdateSvgBoundingRect));
+            _svgPos = await _svg.GetBoundingClientRectAsync(JSRuntime).ConfigureAwait(false);
         }
 
         private static OxyModifierKeys TranslateModifierKeys(MouseEventArgs e)
@@ -411,5 +398,9 @@ namespace OxyPlot.Blazor
                 _ => "default",
             };
 
+        public void Dispose()
+        {
+            _timer.Dispose();
+        }
     }
 }
