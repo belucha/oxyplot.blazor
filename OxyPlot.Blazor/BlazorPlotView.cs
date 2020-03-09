@@ -312,7 +312,7 @@ namespace OxyPlot.Blazor
             builder.CloseElement();
         }
 
-        protected override async Task OnAfterRenderAsync(bool firstRender)
+        protected override void OnAfterRender(bool firstRender)
         {
             if (firstRender && _timer.Enabled == false)
             {
