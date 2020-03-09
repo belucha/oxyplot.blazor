@@ -72,7 +72,7 @@ namespace OxyPlot.Blazor
                 )
             {
                 _svgPos = n;
-                InvokeAsync(() => StateHasChanged());
+                await InvokeAsync(() => StateHasChanged()).ConfigureAwait(false);
             }
         }
         /// <summary>
@@ -314,12 +314,12 @@ namespace OxyPlot.Blazor
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
-            if (firstRender && _timer.Enabled==false)
+            if (firstRender && _timer.Enabled == false)
             {
                 _timer.Elapsed += UpdateSvgBoundingRect;
                 _timer.Enabled = true;
             }
-            _svgPos = await _svg.GetBoundingClientRectAsync(JSRuntime).ConfigureAwait(false);
+            UpdateSvgBoundingRect(null, EventArgs.Empty);
         }
 
         private static OxyModifierKeys TranslateModifierKeys(MouseEventArgs e)
