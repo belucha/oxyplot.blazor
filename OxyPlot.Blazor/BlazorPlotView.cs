@@ -62,17 +62,23 @@ namespace OxyPlot.Blazor
 
         async void UpdateSvgBoundingRect(object _1, EventArgs _2)
         {
-            var n = await _svg.GetBoundingClientRectAsync(JSRuntime).ConfigureAwait(false);
-            // OxyRect.Equals is very picky
-            if (false
-                || Math.Abs(n.Left - _svgPos.Left) > 0.5
-                || Math.Abs(n.Top - _svgPos.Top) > 0.5
-                || Math.Abs(n.Width - _svgPos.Width) > 0.5
-                || Math.Abs(n.Height - _svgPos.Height) > 0.5
-                )
+            try
             {
-                _svgPos = n;
-                await InvokeAsync(() => StateHasChanged()).ConfigureAwait(false);
+                var n = await _svg.GetBoundingClientRectAsync(JSRuntime).ConfigureAwait(false);
+                // OxyRect.Equals is very picky
+                if (false
+                    || Math.Abs(n.Left - _svgPos.Left) > 0.5
+                    || Math.Abs(n.Top - _svgPos.Top) > 0.5
+                    || Math.Abs(n.Width - _svgPos.Width) > 0.5
+                    || Math.Abs(n.Height - _svgPos.Height) > 0.5
+                    )
+                {
+                    _svgPos = n;
+                    await InvokeAsync(() => StateHasChanged()).ConfigureAwait(false);
+                }
+            } catch (TaskCanceledException)
+            {
+                // swallow thisone
             }
         }
         /// <summary>
