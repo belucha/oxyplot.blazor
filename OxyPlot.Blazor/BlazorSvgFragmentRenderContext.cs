@@ -251,14 +251,17 @@ namespace OxyPlot.Blazor
         {
             // http://www.w3.org/TR/SVG/shapes.html#LineElement
             // http://www.w3schools.com/svg/svg_line.asp
-            this.WriteStartElement("line");
-            this.WriteAttributeString("x1", p1.X);
-            this.WriteAttributeString("y1", p1.Y);
-            this.WriteAttributeString("x2", p2.X);
-            this.WriteAttributeString("y2", p2.Y);
-            this.WriteAttributeString("style", style);
-            this.WriteClipPathAttribute();
-            this.WriteEndElement();
+            if (double.IsFinite(p1.X) && double.IsFinite(p1.Y) && double.IsFinite(p2.X) && double.IsFinite(p2.Y))
+            {
+                this.WriteStartElement("line");
+                this.WriteAttributeString("x1", p1.X);
+                this.WriteAttributeString("y1", p1.Y);
+                this.WriteAttributeString("x2", p2.X);
+                this.WriteAttributeString("y2", p2.Y);
+                this.WriteAttributeString("style", style);
+                this.WriteClipPathAttribute();
+                this.WriteEndElement();
+            }
         }
 
         /// <summary>
@@ -501,7 +504,10 @@ namespace OxyPlot.Blazor
             string fmt = "{0:" + this.NumberFormat + "},{1:" + this.NumberFormat + "} ";
             foreach (var p in points)
             {
-                sb.AppendFormat(CultureInfo.InvariantCulture, fmt, p.X, p.Y);
+                if (double.IsFinite(p.X) && double.IsFinite(p.Y))
+                {
+                    sb.AppendFormat(CultureInfo.InvariantCulture, fmt, p.X, p.Y);
+                }
             }
             return sb.ToString().Trim();
         }

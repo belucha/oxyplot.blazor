@@ -270,12 +270,14 @@ namespace OxyPlot.Blazor
                 AddEventCallback<MouseEventArgs>(builder, 5, "onmousein", e => ActualController.HandleMouseEnter(this, TranslateMouseEventArgs(e)));
                 AddEventCallback<MouseEventArgs>(builder, 5, "onmouseout", e => ActualController.HandleMouseEnter(this, TranslateMouseEventArgs(e)));
                 // wheel, prevent default does not work
-                //                builder.AddEventPreventDefaultAttribute(6, "onmousewheel", true);
-                //                builder.AddEventStopPropagationAttribute(6, "onmousewheel", true);
                 builder.AddAttribute(6, "onmousewheel", EventCallback.Factory.Create<WheelEventArgs>(this, e => ActualController.HandleMouseWheel(this, TranslateWheelEventArgs(e))));
+                builder.AddEventPreventDefaultAttribute(6, "onmousewheel", true);
+                builder.AddEventStopPropagationAttribute(6, "onmousewheel", true);
                 // todo: keyboard handlers --> they don't seem to work
                 //                AddEventCallback<KeyboardEventArgs>(builder, 5, "onkeypress", e => ActualController.HandleKeyDown(this, TranslateKeyEventArgs(e)));
                 // todo: add missing gesture support
+                builder.AddEventPreventDefaultAttribute(7, "oncontextmenu", true);
+                builder.AddEventStopPropagationAttribute(7, "oncontextmenu", true);
             }
             builder.AddElementReferenceCapture(8, elementReference => _svg = elementReference);
             if (_svgPos.Width > 0)
