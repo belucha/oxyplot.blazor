@@ -62,6 +62,8 @@ namespace OxyPlot.Blazor
 
         async void UpdateSvgBoundingRect(object _1, EventArgs _2)
         {
+            if (_svg.Id == null)
+                return;
             try
             {
                 var n = await _svg.GetBoundingClientRectAsync(JSRuntime).ConfigureAwait(false);
@@ -76,7 +78,8 @@ namespace OxyPlot.Blazor
                     _svgPos = n;
                     await InvokeAsync(() => StateHasChanged()).ConfigureAwait(false);
                 }
-            } catch (TaskCanceledException)
+            }
+            catch (TaskCanceledException)
             {
                 // swallow thisone
             }
@@ -242,6 +245,12 @@ namespace OxyPlot.Blazor
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
+            if (this.currentModel == null)
+            {
+                _svg = new ElementReference();
+                _timer.Enabled = false;
+                return;
+            }
             // note this gist about seequence numbers
             // https://gist.github.com/SteveSandersonMS/ec232992c2446ab9a0059dd0fbc5d0c3
             builder.OpenElement(0, "svg");
@@ -279,7 +288,11 @@ namespace OxyPlot.Blazor
                 builder.AddEventPreventDefaultAttribute(7, "oncontextmenu", true);
                 builder.AddEventStopPropagationAttribute(7, "oncontextmenu", true);
             }
-            builder.AddElementReferenceCapture(8, elementReference => _svg = elementReference);
+            builder.AddElementReferenceCapture(8, elementReference =>
+            {
+                _svg = elementReference;
+                _timer.Enabled = _svg.Id != null;
+            });
             if (_svgPos.Width > 0)
             {
                 var model = ((IPlotModel)this.currentModel);
@@ -322,11 +335,8 @@ namespace OxyPlot.Blazor
 
         protected override void OnAfterRender(bool firstRender)
         {
-            if (firstRender && _timer.Enabled == false)
-            {
+            if (firstRender)
                 _timer.Elapsed += UpdateSvgBoundingRect;
-                _timer.Enabled = true;
-            }
             UpdateSvgBoundingRect(null, EventArgs.Empty);
         }
 
