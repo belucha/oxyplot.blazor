@@ -326,8 +326,8 @@ namespace OxyPlot.Blazor
                     renderer.SequenceNumber = 20;
                     var s = renderer.MeasureText(_tracker.Text, null, 10, 400);
                     var r = new OxyRect(_tracker.Position, s).Inflate(50, 5).Offset(20, 0);
-                    renderer.FillRectangle(r, OxyColors.White);
-                    renderer.DrawMultilineText(_tracker.Position, _tracker.Text, OxyColors.Black);
+                    renderer.FillRectangle(r, currentModel.LegendBackground);
+                    renderer.DrawMultilineText(_tracker.Position, _tracker.Text, currentModel.LegendTextColor);
                 }
             }
             builder.CloseElement();
