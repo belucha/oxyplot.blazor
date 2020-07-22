@@ -29,6 +29,11 @@ namespace OxyPlot.Blazor
         /// The clip path
         /// </summary>
         private string clipPath;
+        
+        /// <summary>
+        /// Tooltip(title) for next svg element
+        /// </summary>
+        private string title;
 
         /// <summary>
         /// The clip path number
@@ -38,6 +43,27 @@ namespace OxyPlot.Blazor
         private readonly RenderTreeBuilder _b;
 
         public int SequenceNumber { get; set; }
+
+        /// <summary>
+        /// Sets the tooltip for the next element
+        /// </summary>
+        /// <param name="text"></param>
+        public override void SetToolTip(string text)
+        {
+            title = text;
+        }
+        /// <summary>
+        /// Adds the title if present
+        /// </summary>
+        protected void WriteTitle()
+        {
+            if (title != null)
+            {
+                WriteStartElement("title");
+                WriteText(title);
+                WriteEndElement();
+            }
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SvgWriter" /> class.
@@ -276,6 +302,7 @@ namespace OxyPlot.Blazor
             this.WriteAttributeString("points", this.PointsToString(points));
             this.WriteAttributeString("style", style);
             this.WriteClipPathAttribute();
+            this.WriteTitle();
             this.WriteEndElement();
         }
 
@@ -312,6 +339,7 @@ namespace OxyPlot.Blazor
             this.WriteAttributeString("height", height);
             this.WriteAttributeString("style", style);
             this.WriteClipPathAttribute();
+            this.WriteTitle();
             this.WriteEndElement();
         }
 
@@ -447,6 +475,11 @@ namespace OxyPlot.Blazor
         protected void WriteString(string value)
         {
             _b.AddMarkupContent(SequenceNumber, value);
+        }
+
+        protected void WriteText(string value)
+        {
+            _b.AddContent(SequenceNumber, value);
         }
 
         protected void WriteAttributeString(string name, string value)
