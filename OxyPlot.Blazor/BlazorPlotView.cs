@@ -324,10 +324,54 @@ namespace OxyPlot.Blazor
                 if (_tracker != null && _trackerEnabled)
                 {
                     renderer.SequenceNumber = 20;
-                    var s = renderer.MeasureText(_tracker.Text, null, 10, 400);
-                    var r = new OxyRect(_tracker.Position, s).Inflate(50, 5).Offset(20, 0);
+                    string fontFamily = null;
+                    double fontSize = 10;
+                    double fontWeight = 400;
+                    var s = renderer.MeasureText(_tracker.Text, fontFamily, fontSize, fontWeight);
+                    var x = _tracker.Position.X + 10;
+                    var y = _tracker.Position.Y + 10;
+                    var w = s.Width + 50;
+                    var h = s.Height + 20;
+                    // check, if the tracker goes of the svg area?
+                    if ((x + w) > _svgPos.Width)
+                    {
+                        // right side out, fix it
+                        x = _tracker.Position.X - w - 5;
+                    }
+                    if ((y + h) > _svgPos.Height)
+                    {
+                        // bottom out, fix it
+                        y = _tracker.Position.Y - h - 5;
+                    }
+                    // build rect and fill
+                    var r = new OxyRect(x, y, w, h);
                     renderer.FillRectangle(r, currentModel.LegendBackground);
-                    renderer.DrawMultilineText(_tracker.Position, _tracker.Text, currentModel.LegendTextColor);
+                    renderer.DrawText(
+                          p: r.Center
+                        , text: _tracker.Text
+                        , c: currentModel.LegendTextColor
+                        , fontFamily: fontFamily
+                        , fontSize: fontSize
+                        , fontWeight: fontWeight
+                        , rotate: 0
+                        , halign: HorizontalAlignment.Center
+                        , valign: VerticalAlignment.Middle
+                        , maxSize: null
+                    );
+                    /*
+                    renderer.DrawClippedText(clippingRectangle: r
+                        , p: p
+                        , text: _tracker.Text
+                        , fill: currentModel.LegendTextColor // currentModel.LegendBackground
+                        , fontFamily: null
+                        , fontSize: 10
+                        , fontWeight: 400
+                        , rotate: 0
+                        , horizontalAlignment: HorizontalAlignment.Center
+                        , verticalAlignment: VerticalAlignment.Middle
+                        , maxSize: null
+                    );
+                    */
                 }
             }
             builder.CloseElement();
@@ -379,7 +423,7 @@ namespace OxyPlot.Blazor
         private OxyMouseDownEventArgs TranslateMouseEventArgs(MouseEventArgs e)
             => new OxyMouseDownEventArgs
             {
-                Position = new ScreenPoint(e.ClientX - _svgPos.Left, e.ClientY - _svgPos.Top),
+                Position = new ScreenPoint(e.OffsetX, e.OffsetY),
                 ChangedButton = TranslateButton(e),
                 ClickCount = (int)e.Detail,
                 ModifierKeys = TranslateModifierKeys(e),
@@ -387,7 +431,7 @@ namespace OxyPlot.Blazor
         private OxyMouseWheelEventArgs TranslateWheelEventArgs(WheelEventArgs e)
             => new OxyMouseWheelEventArgs
             {
-                Position = new ScreenPoint(e.ClientX - _svgPos.Left, e.ClientY - _svgPos.Top),
+                Position = new ScreenPoint(e.OffsetX, e.OffsetY),
                 Delta = (int)(e.DeltaY != 0 ? e.DeltaY : e.DeltaX),
                 ModifierKeys = TranslateModifierKeys(e),
             };
