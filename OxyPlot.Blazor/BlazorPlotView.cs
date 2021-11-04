@@ -13,6 +13,7 @@ namespace OxyPlot.Blazor
     public class BlazorPlotView : ComponentBase, IPlotView, IDisposable
     {
         readonly System.Timers.Timer _timer = new System.Timers.Timer(500) { Enabled = false, };
+        bool _disposed;
         [Inject] IJSRuntime JSRuntime { get; set; }
         [Parameter] public string PreserveAspectRation { get; set; } = "none";
         [Parameter] public string Width { get; set; }
@@ -60,28 +61,34 @@ namespace OxyPlot.Blazor
         private bool _trackerEnabled = true;
         private OxyRect _svgPos = new OxyRect(0, 0, 0, 0);
 
-        async void UpdateSvgBoundingRect(object _1, EventArgs _2)
+        async void TimerExpired(object _, EventArgs __)
         {
-            if (_svg.Id == null)
+            if (_svg.Id == null || _disposed)
                 return;
             try
             {
-                var n = await _svg.GetBoundingClientRectAsync(JSRuntime).ConfigureAwait(false);
-                // OxyRect.Equals is very picky
-                if (false
-                    || Math.Abs(n.Left - _svgPos.Left) > 0.5
-                    || Math.Abs(n.Top - _svgPos.Top) > 0.5
-                    || Math.Abs(n.Width - _svgPos.Width) > 0.5
-                    || Math.Abs(n.Height - _svgPos.Height) > 0.5
-                    )
-                {
-                    _svgPos = n;
-                    await InvokeAsync(() => StateHasChanged()).ConfigureAwait(false);
-                }
+                await InvokeAsync(UpdateSvgBoundingRect);
             }
-            catch (TaskCanceledException)
+            catch
             {
                 // swallow thisone
+            }
+        }
+        async void UpdateSvgBoundingRect()
+        {
+            if (_svg.Id == null || _disposed)
+                return;
+            var n = await _svg.GetBoundingClientRectAsync(JSRuntime).ConfigureAwait(false);
+            // OxyRect.Equals is very picky
+            if (false
+                || Math.Abs(n.Left - _svgPos.Left) > 0.5
+                || Math.Abs(n.Top - _svgPos.Top) > 0.5
+                || Math.Abs(n.Width - _svgPos.Width) > 0.5
+                || Math.Abs(n.Height - _svgPos.Height) > 0.5
+                )
+            {
+                _svgPos = n;
+                await InvokeAsync(() => StateHasChanged()).ConfigureAwait(false);
             }
         }
         /// <summary>
@@ -213,7 +220,12 @@ namespace OxyPlot.Blazor
         /// </summary>
         /// <param name="cursorType">The cursor type.</param>
         public void SetCursorType(CursorType cursorType)
-            => _svg.SetCursor(JSRuntime, TranslateCursorType(cursorType));
+        {
+            if (!_disposed)
+            {
+                _svg.SetCursor(JSRuntime, TranslateCursorType(cursorType));
+            }
+        }
 
         /// <summary>
         /// Shows the zoom rectangle.
@@ -231,6 +243,7 @@ namespace OxyPlot.Blazor
         /// <param name="text">The text.</param>
         public void SetClipboardText(string text)
         {
+            if (_disposed) return;
             // todo: not tested yet, don't know when it is called
             // https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText
             JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
@@ -380,8 +393,8 @@ namespace OxyPlot.Blazor
         protected override void OnAfterRender(bool firstRender)
         {
             if (firstRender)
-                _timer.Elapsed += UpdateSvgBoundingRect;
-            UpdateSvgBoundingRect(null, EventArgs.Empty);
+                _timer.Elapsed += TimerExpired;
+            UpdateSvgBoundingRect();
         }
 
         private static OxyModifierKeys TranslateModifierKeys(MouseEventArgs e)
@@ -462,7 +475,12 @@ namespace OxyPlot.Blazor
 
         public void Dispose()
         {
-            _timer.Dispose();
+            if (!_disposed)
+            {
+                _timer.Elapsed -= TimerExpired;
+                _timer.Dispose();
+            }
+            _disposed = true;
         }
     }
 }
