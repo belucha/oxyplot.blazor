@@ -293,13 +293,17 @@ namespace OxyPlot.Blazor
                 AddEventCallback<MouseEventArgs>(builder, 5, "onmouseout", e => ActualController.HandleMouseEnter(this, TranslateMouseEventArgs(e)));
                 // wheel, prevent default does not work
                 builder.AddAttribute(6, "onmousewheel", EventCallback.Factory.Create<WheelEventArgs>(this, e => ActualController.HandleMouseWheel(this, TranslateWheelEventArgs(e))));
-                builder.AddEventPreventDefaultAttribute(6, "onmousewheel", true);
-                builder.AddEventStopPropagationAttribute(6, "onmousewheel", true);
-                // todo: keyboard handlers --> they don't seem to work
-                //                AddEventCallback<KeyboardEventArgs>(builder, 5, "onkeypress", e => ActualController.HandleKeyDown(this, TranslateKeyEventArgs(e)));
-                // todo: add missing gesture support
-                builder.AddEventPreventDefaultAttribute(7, "oncontextmenu", true);
-                builder.AddEventStopPropagationAttribute(7, "oncontextmenu", true);
+                //builder.AddEventPreventDefaultAttribute(6, "onmousewheel", true);
+                //builder.AddEventStopPropagationAttribute(6, "onmousewheel", true);
+                //// todo: keyboard handlers --> they don't seem to work
+                ////                AddEventCallback<KeyboardEventArgs>(builder, 5, "onkeypress", e => ActualController.HandleKeyDown(this, TranslateKeyEventArgs(e)));
+                //// todo: add missing gesture support
+                //builder.AddEventPreventDefaultAttribute(7, "oncontextmenu", true);
+                //builder.AddEventStopPropagationAttribute(7, "oncontextmenu", true);
+
+                //Does not respond to right-click menus and scrolling
+                _svg.DisableContextMenu(JSRuntime);
+                _svg.DisableMouseWheel(JSRuntime);
             }
             builder.AddElementReferenceCapture(8, elementReference =>
             {

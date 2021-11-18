@@ -23,5 +23,7 @@ namespace OxyPlot.Blazor
             => JSRuntime.InvokeVoidAsync("OxyPlotBlazor.disableContextMenu", element);
         public static ValueTask SetCursor(this ElementReference element, IJSRuntime JSRuntime, string cursorName)
             => JSRuntime.InvokeVoidAsync("OxyPlotBlazor.setCursor", element, cursorName);
+        public static ValueTask DisableMouseWheel(this ElementReference element, IJSRuntime JSRuntime)
+            => JSRuntime.InvokeVoidAsync("OxyPlotBlazor.disableMouseWheel", element);
     }
 }

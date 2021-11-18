@@ -16,6 +16,12 @@ window.OxyPlotBlazor = {
         }
         );
     },
+    disableMouseWheel: function (element) {
+        element.addEventListener('mousewheel', ev => {
+            ev.preventDefault();
+            return false;
+        }, { passive: false });
+    },
     setCursor: function (element, cursorName) {
         element.style.cursor = cursorName;
     },
