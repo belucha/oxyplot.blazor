@@ -449,7 +449,7 @@ namespace OxyPlot.Blazor
             => new OxyMouseWheelEventArgs
             {
                 Position = new ScreenPoint(e.OffsetX, e.OffsetY),
-                Delta = (int)(e.DeltaY != 0 ? e.DeltaY : e.DeltaX),
+                Delta = (int)(e.DeltaY != 0 ? (-1*e.DeltaY) : e.DeltaX),
                 ModifierKeys = TranslateModifierKeys(e),
             };
 
