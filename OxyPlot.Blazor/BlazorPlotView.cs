@@ -6,13 +6,14 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
+using System.Timers;
 using System.Threading.Tasks;
 
 namespace OxyPlot.Blazor
 {
     public class BlazorPlotView : ComponentBase, IPlotView, IDisposable
     {
-        readonly System.Timers.Timer _timer = new System.Timers.Timer(500) { Enabled = false, };
+        readonly Timer _timer = new(500) { Enabled = false, };
         bool _disposed;
         [Inject] IJSRuntime JSRuntime { get; set; }
         [Parameter] public string PreserveAspectRation { get; set; } = "none";
@@ -59,7 +60,7 @@ namespace OxyPlot.Blazor
         private ElementReference _svg;
         private TrackerHitResult _tracker;
         private bool _trackerEnabled = true;
-        private OxyRect _svgPos = new OxyRect(0, 0, 0, 0);
+        private OxyRect _svgPos = new (0, 0, 0, 0);
 
         async void TimerExpired(object _, EventArgs __)
         {
@@ -147,7 +148,7 @@ namespace OxyPlot.Blazor
         /// Gets the actual plot controller.
         /// </summary>
         /// <value>The actual plot controller.</value>
-        public IPlotController ActualController => this.Controller ?? (this.defaultController ?? (this.defaultController = new PlotController()));
+        public IPlotController ActualController => this.Controller ?? (this.defaultController ??= new PlotController());
 
         /// <summary>
         /// Shows the tracker.
@@ -219,11 +220,11 @@ namespace OxyPlot.Blazor
         /// Sets the cursor type.
         /// </summary>
         /// <param name="cursorType">The cursor type.</param>
-        public void SetCursorType(CursorType cursorType)
+        public async void SetCursorType(CursorType cursorType)
         {
             if (!_disposed)
             {
-                _svg.SetCursor(JSRuntime, TranslateCursorType(cursorType));
+                await _svg.SetCursor(JSRuntime, TranslateCursorType(cursorType));
             }
         }
 
@@ -241,12 +242,12 @@ namespace OxyPlot.Blazor
         /// Sets the clipboard text.
         /// </summary>
         /// <param name="text">The text.</param>
-        public void SetClipboardText(string text)
+        public async void SetClipboardText(string text)
         {
             if (_disposed) return;
             // todo: not tested yet, don't know when it is called
             // https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText
-            JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
         }
 
         void AddEventCallback<T>(RenderTreeBuilder builder, int sequence, string name, Action<T> callback)
@@ -275,6 +276,13 @@ namespace OxyPlot.Blazor
             if (!String.IsNullOrEmpty(Height))
             {
                 builder.AddAttribute(2, "height", Height);
+            }
+            // if the svg size is specified in pixels, we can start rendering right now
+            if (_svgPos.Width == 0 && _svgPos.Height == 0
+                && Width != null && Width.EndsWith("px") && int.TryParse(Width[..^-2], out var wpx) && wpx > 0
+                && Height != null && Width.EndsWith("px") && int.TryParse(Height[..^-2], out var hpx) && hpx > 0)
+            {
+                _svgPos = new OxyRect(0, 0, wpx, hpx);
             }
             if (_svgPos.Width > 0)
             {
@@ -322,16 +330,17 @@ namespace OxyPlot.Blazor
                     renderer.SequenceNumber = 11;
                     if (model.Background != OxyColors.Transparent)
                     {
-                        renderer.FillRectangle(OxyRect.Create(0, 0, _svgPos.Width, _svgPos.Height), model.Background);
+                        renderer.FillRectangle(OxyRect.Create(0, 0, _svgPos.Width, _svgPos.Height), model.Background, EdgeRenderingMode.Automatic);
                     }
                     renderer.SequenceNumber = 10;
-                    model.Render(renderer, _svgPos.Width, _svgPos.Height);
+
+                    model.Render(renderer, new OxyRect(0, 0, _svgPos.Width, _svgPos.Height));
                 }
                 // zoom rectangle
                 if (this.zoomRectangle.Width > 0 || this.zoomRectangle.Height > 0)
                 {
                     renderer.SequenceNumber = 15;
-                    renderer.DrawRectangle(zoomRectangle, OxyColor.FromArgb(0x40, 0xFF, 0xFF, 0x00), OxyColors.Black, 0.5);
+                    renderer.DrawRectangle(zoomRectangle, OxyColor.FromArgb(0x40, 0xFF, 0xFF, 0x00), OxyColors.Black, 0.5, EdgeRenderingMode.Automatic);
                 }
                 // tracker
                 if (_tracker != null && _trackerEnabled)
@@ -358,11 +367,11 @@ namespace OxyPlot.Blazor
                     }
                     // build rect and fill
                     var r = new OxyRect(x, y, w, h);
-                    renderer.FillRectangle(r, currentModel.LegendBackground);
+                    renderer.FillRectangle(r, currentModel.Background, EdgeRenderingMode.Automatic);
                     renderer.DrawText(
                           p: r.Center
                         , text: _tracker.Text
-                        , c: currentModel.LegendTextColor
+                        , c: currentModel.TitleColor
                         , fontFamily: fontFamily
                         , fontSize: fontSize
                         , fontWeight: fontWeight
@@ -433,16 +442,16 @@ namespace OxyPlot.Blazor
                 _ => OxyMouseButton.None,
             };
 
-        private OxyMouseDownEventArgs TranslateMouseEventArgs(MouseEventArgs e)
-            => new OxyMouseDownEventArgs
+        private static OxyMouseDownEventArgs TranslateMouseEventArgs(MouseEventArgs e)
+            => new ()
             {
                 Position = new ScreenPoint(e.OffsetX, e.OffsetY),
                 ChangedButton = TranslateButton(e),
                 ClickCount = (int)e.Detail,
                 ModifierKeys = TranslateModifierKeys(e),
             };
-        private OxyMouseWheelEventArgs TranslateWheelEventArgs(WheelEventArgs e)
-            => new OxyMouseWheelEventArgs
+        private static OxyMouseWheelEventArgs TranslateWheelEventArgs(WheelEventArgs e)
+            => new ()
             {
                 Position = new ScreenPoint(e.OffsetX, e.OffsetY),
                 Delta = (int)(e.DeltaY != 0 ? e.DeltaY : e.DeltaX),
@@ -450,7 +459,7 @@ namespace OxyPlot.Blazor
             };
 
         private static OxyKeyEventArgs TranslateKeyEventArgs(KeyboardEventArgs e)
-            => new OxyKeyEventArgs
+            => new ()
             {
                 Key = Enum.TryParse<OxyKey>(e.Key, true, out var oxyKey) ? oxyKey : OxyKey.Unknown,
                 ModifierKeys = TranslateModifierKeys(e),
@@ -479,6 +488,7 @@ namespace OxyPlot.Blazor
             {
                 _timer.Elapsed -= TimerExpired;
                 _timer.Dispose();
+                GC.SuppressFinalize(this);
             }
             _disposed = true;
         }

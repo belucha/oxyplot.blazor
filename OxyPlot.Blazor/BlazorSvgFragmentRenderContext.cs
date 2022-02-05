@@ -23,13 +23,8 @@ namespace OxyPlot.Blazor
     /// <summary>
     /// Provides a render context for scalable vector graphics output.
     /// </summary>
-    public class BlazorSvgFragmentRenderContext : RenderContextBase
+    public class BlazorSvgFragmentRenderContext : ClippingRenderContext
     {
-        /// <summary>
-        /// The clip path
-        /// </summary>
-        private string clipPath;
-        
         /// <summary>
         /// Tooltip(title) for next svg element
         /// </summary>
@@ -159,7 +154,7 @@ namespace OxyPlot.Blazor
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <param name="style">The style.</param>
-        public void WriteEllipse(double x, double y, double width, double height, string style)
+        public void WriteEllipse(double x, double y, double width, double height, string style, EdgeRenderingMode edgeRenderingMode)
         {
             // http://www.w3.org/TR/SVG/shapes.html#EllipseElement
             this.WriteStartElement("ellipse");
@@ -168,8 +163,19 @@ namespace OxyPlot.Blazor
             this.WriteAttributeString("rx", width / 2);
             this.WriteAttributeString("ry", height / 2);
             this.WriteAttributeString("style", style);
-            this.WriteClipPathAttribute();
+            this.WriteEdgeRenderingModeAttribute(edgeRenderingMode);
             this.WriteEndElement();
+        }
+
+        protected override void SetClip(OxyRect clippingRectangle)
+        {
+            this.BeginClip(clippingRectangle.Left, clippingRectangle.Top, clippingRectangle.Width, clippingRectangle.Height);
+        }
+
+        /// <inheritdoc/>
+        protected override void ResetClip()
+        {
+            this.EndClip();
         }
 
         /// <summary>
@@ -184,11 +190,11 @@ namespace OxyPlot.Blazor
             // http://www.w3.org/TR/SVG/masking.html
             // https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath
             // http://www.svgbasics.com/clipping.html
-            this.clipPath = "clipPath" + (this.clipPathNumber++);
-            this.WriteStartElement("g");
-            this.WriteAttributeString("clip-rule", "nonzero");
+            var clipPath = $"clipPath{this.clipPathNumber++}";
+
+            this.WriteStartElement("defs");
             this.WriteStartElement("clipPath");
-            this.WriteAttributeString("id", this.clipPath);
+            this.WriteAttributeString("id", clipPath);
             this.WriteStartElement("rect");
             this.WriteAttributeString("x", x);
             this.WriteAttributeString("y", y);
@@ -196,6 +202,10 @@ namespace OxyPlot.Blazor
             this.WriteAttributeString("height", height);
             this.WriteEndElement(); // rect
             this.WriteEndElement(); // clipPath
+            this.WriteEndElement(); // defs
+
+            this.WriteStartElement("g");
+            this.WriteAttributeString("clip-path", $"url(#{clipPath})");
         }
 
         /// <summary>
@@ -204,7 +214,6 @@ namespace OxyPlot.Blazor
         public void EndClip()
         {
             this.WriteEndElement(); // g
-            this.clipPath = null;
         }
 
         /// <summary>
@@ -263,7 +272,6 @@ namespace OxyPlot.Blazor
             encodedImage.Append(";base64,");
             encodedImage.Append(Convert.ToBase64String(imageData));
             this.WriteAttributeString("xlink", "href", null, encodedImage.ToString());
-            this.WriteClipPathAttribute();
             this.WriteEndElement();
         }
 
@@ -285,7 +293,6 @@ namespace OxyPlot.Blazor
                 this.WriteAttributeString("x2", p2.X);
                 this.WriteAttributeString("y2", p2.Y);
                 this.WriteAttributeString("style", style);
-                this.WriteClipPathAttribute();
                 this.WriteEndElement();
             }
         }
@@ -295,13 +302,13 @@ namespace OxyPlot.Blazor
         /// </summary>
         /// <param name="points">The points.</param>
         /// <param name="style">The style.</param>
-        public void WritePolygon(IEnumerable<ScreenPoint> points, string style)
+        public void WritePolygon(IEnumerable<ScreenPoint> points, string style, EdgeRenderingMode edgeRenderingMode)
         {
             // http://www.w3.org/TR/SVG/shapes.html#PolygonElement
             this.WriteStartElement("polygon");
             this.WriteAttributeString("points", this.PointsToString(points));
             this.WriteAttributeString("style", style);
-            this.WriteClipPathAttribute();
+            this.WriteEdgeRenderingModeAttribute(edgeRenderingMode);
             this.WriteTitle();
             this.WriteEndElement();
         }
@@ -311,13 +318,13 @@ namespace OxyPlot.Blazor
         /// </summary>
         /// <param name="pts">The points.</param>
         /// <param name="style">The style.</param>
-        public void WritePolyline(IEnumerable<ScreenPoint> pts, string style)
+        public void WritePolyline(IEnumerable<ScreenPoint> pts, string style, EdgeRenderingMode edgeRenderingMode)
         {
             // http://www.w3.org/TR/SVG/shapes.html#PolylineElement
             this.WriteStartElement("polyline");
             this.WriteAttributeString("points", this.PointsToString(pts));
             this.WriteAttributeString("style", style);
-            this.WriteClipPathAttribute();
+            this.WriteEdgeRenderingModeAttribute(edgeRenderingMode);
             this.WriteEndElement();
         }
 
@@ -329,7 +336,7 @@ namespace OxyPlot.Blazor
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <param name="style">The style.</param>
-        public void WriteRectangle(double x, double y, double width, double height, string style)
+        public void WriteRectangle(double x, double y, double width, double height, string style, EdgeRenderingMode edgeRenderingMode)
         {
             // http://www.w3.org/TR/SVG/shapes.html#RectangleElement
             this.WriteStartElement("rect");
@@ -338,7 +345,7 @@ namespace OxyPlot.Blazor
             this.WriteAttributeString("width", width);
             this.WriteAttributeString("height", height);
             this.WriteAttributeString("style", style);
-            this.WriteClipPathAttribute();
+            this.WriteEdgeRenderingModeAttribute(edgeRenderingMode);
             this.WriteTitle();
             this.WriteEndElement();
         }
@@ -434,8 +441,6 @@ namespace OxyPlot.Blazor
                 }
             }
 
-            this.WriteClipPathAttribute();
-
             // WriteAttributeString("style", style);
             this.WriteString(text);
             this.WriteEndElement();
@@ -487,6 +492,30 @@ namespace OxyPlot.Blazor
             _b.AddAttribute(SequenceNumber, name, value);
         }
 
+        /// <summary>
+        /// Writes the edge rendering mode attribute if necessary.
+        /// </summary>
+        /// <param name="edgeRenderingMode">The edge rendering mode.</param>
+        protected void WriteEdgeRenderingModeAttribute(EdgeRenderingMode edgeRenderingMode)
+        {
+            string value;
+            switch (edgeRenderingMode)
+            {
+                case EdgeRenderingMode.PreferSharpness:
+                    value = "crispEdges";
+                    break;
+                case EdgeRenderingMode.PreferSpeed:
+                    value = "optimizeSpeed";
+                    break;
+                case EdgeRenderingMode.PreferGeometricAccuracy:
+                    value = "geometricPrecision";
+                    break;
+                default:
+                    return;
+            }
+            WriteAttributeString("shape-rendering", value);
+        }
+
         protected void WriteStartElement(string name)
         {
             _b.OpenElement(SequenceNumber, name);
@@ -495,35 +524,6 @@ namespace OxyPlot.Blazor
         protected void WriteEndElement()
         {
             _b.CloseElement();
-        }
-
-        /// <summary>
-        /// Writes the clip path attribute.
-        /// </summary>
-        private void WriteClipPathAttribute()
-        {
-            if (this.clipPath == null)
-            {
-                return;
-            }
-
-            this.WriteAttributeString("clip-path", string.Format("url(#{0})", this.clipPath));
-        }
-
-        /// <summary>
-        /// Converts a value to a string or to the specified "auto" string if the value is NaN.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="auto">The string to return if value is NaN.</param>
-        /// <returns>A string.</returns>
-        private string GetAutoValue(double value, string auto)
-        {
-            if (double.IsNaN(value))
-            {
-                return auto;
-            }
-
-            return value.ToString(this.NumberFormat, CultureInfo.InvariantCulture);
         }
 
         /// <summary>
@@ -557,9 +557,9 @@ namespace OxyPlot.Blazor
         /// <param name="fill">The fill color.</param>
         /// <param name="stroke">The stroke color.</param>
         /// <param name="thickness">The thickness.</param>
-        public override void DrawEllipse(OxyRect rect, OxyColor fill, OxyColor stroke, double thickness)
+        public override void DrawEllipse(OxyRect rect, OxyColor fill, OxyColor stroke, double thickness, EdgeRenderingMode edgeRenderingMode)
         {
-            this.WriteEllipse(rect.Left, rect.Top, rect.Width, rect.Height, this.CreateStyle(fill, stroke, thickness));
+            this.WriteEllipse(rect.Left, rect.Top, rect.Width, rect.Height, this.CreateStyle(fill, stroke, thickness), edgeRenderingMode);
         }
 
         /// <summary>
@@ -571,15 +571,9 @@ namespace OxyPlot.Blazor
         /// <param name="dashArray">The dash array.</param>
         /// <param name="lineJoin">The line join type.</param>
         /// <param name="aliased">if set to <c>true</c> the shape will be aliased.</param>
-        public override void DrawLine(
-            IList<ScreenPoint> points,
-            OxyColor stroke,
-            double thickness,
-            double[] dashArray,
-            LineJoin lineJoin,
-            bool aliased)
+        public override void DrawLine(IList<ScreenPoint> points, OxyColor stroke, double thickness, EdgeRenderingMode edgeRenderingMode, double[] dashArray, LineJoin lineJoin)
         {
-            this.WritePolyline(points, this.CreateStyle(OxyColors.Undefined, stroke, thickness, dashArray, lineJoin));
+            this.WritePolyline(points, this.CreateStyle(OxyColors.Undefined, stroke, thickness, dashArray, lineJoin), edgeRenderingMode);
         }
 
         /// <summary>
@@ -592,16 +586,9 @@ namespace OxyPlot.Blazor
         /// <param name="dashArray">The dash array.</param>
         /// <param name="lineJoin">The line join type.</param>
         /// <param name="aliased">if set to <c>true</c> the shape will be aliased.</param>
-        public override void DrawPolygon(
-            IList<ScreenPoint> points,
-            OxyColor fill,
-            OxyColor stroke,
-            double thickness,
-            double[] dashArray,
-            LineJoin lineJoin,
-            bool aliased)
+        public override void DrawPolygon(IList<ScreenPoint> points, OxyColor fill, OxyColor stroke, double thickness, EdgeRenderingMode edgeRenderingMode, double[] dashArray, LineJoin lineJoin)
         {
-            this.WritePolygon(points, this.CreateStyle(fill, stroke, thickness, dashArray, lineJoin));
+            this.WritePolygon(points, this.CreateStyle(fill, stroke, thickness, dashArray, lineJoin), edgeRenderingMode);
         }
 
         /// <summary>
@@ -611,9 +598,9 @@ namespace OxyPlot.Blazor
         /// <param name="fill">The fill color.</param>
         /// <param name="stroke">The stroke color.</param>
         /// <param name="thickness">The stroke thickness.</param>
-        public override void DrawRectangle(OxyRect rect, OxyColor fill, OxyColor stroke, double thickness)
+        public override void DrawRectangle(OxyRect rect, OxyColor fill, OxyColor stroke, double thickness, EdgeRenderingMode edgeRenderingMode)
         {
-            this.WriteRectangle(rect.Left, rect.Top, rect.Width, rect.Height, this.CreateStyle(fill, stroke, thickness));
+            this.WriteRectangle(rect.Left, rect.Top, rect.Width, rect.Height, this.CreateStyle(fill, stroke, thickness), edgeRenderingMode);
         }
 
         /// <summary>
