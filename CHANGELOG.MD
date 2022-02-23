@@ -1,3 +1,10 @@
+## 2022-02-23 v2.1.2
+
+- sample project with .net 6
+- JS Interop is done using IJSObjectReference
+- requires to add `builder.Services.AddOxyPlotBlazor()` to `Program.cs` or `Startup`
+- no java script include is requried
+
 ## 2022-02-06 v2.1.0
 
 - OxyPlot.Core 2.1.0

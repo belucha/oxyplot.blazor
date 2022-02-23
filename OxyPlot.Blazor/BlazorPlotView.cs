@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable disable
+using System;
 using System.Linq;
 using System.Text;
 using System.Collections.Generic;
@@ -15,7 +16,7 @@ namespace OxyPlot.Blazor
     {
         readonly Timer _timer = new(500) { Enabled = false, };
         bool _disposed;
-        [Inject] IJSRuntime JSRuntime { get; set; }
+        [Inject] OxyPlotJsInterop OxyJS { get; set; }
         [Parameter] public string PreserveAspectRation { get; set; } = "none";
         [Parameter] public string Width { get; set; }
         [Parameter] public string Height { get; set; }
@@ -60,7 +61,7 @@ namespace OxyPlot.Blazor
         private ElementReference _svg;
         private TrackerHitResult _tracker;
         private bool _trackerEnabled = true;
-        private OxyRect _svgPos = new (0, 0, 0, 0);
+        private OxyRect _svgPos = new(0, 0, 0, 0);
 
         async void TimerExpired(object _, EventArgs __)
         {
@@ -79,7 +80,7 @@ namespace OxyPlot.Blazor
         {
             if (_svg.Id == null || _disposed)
                 return;
-            var n = await _svg.GetBoundingClientRectAsync(JSRuntime).ConfigureAwait(false);
+            var n = await OxyJS.GetBoundingClientRectAsync(_svg);
             // OxyRect.Equals is very picky
             if (false
                 || Math.Abs(n.Left - _svgPos.Left) > 0.5
@@ -89,7 +90,7 @@ namespace OxyPlot.Blazor
                 )
             {
                 _svgPos = n;
-                await InvokeAsync(() => StateHasChanged()).ConfigureAwait(false);
+                StateHasChanged();
             }
         }
         /// <summary>
@@ -224,7 +225,7 @@ namespace OxyPlot.Blazor
         {
             if (!_disposed)
             {
-                await _svg.SetCursor(JSRuntime, TranslateCursorType(cursorType));
+                await OxyJS.SetCursor(_svg, TranslateCursorType(cursorType));
             }
         }
 
@@ -242,12 +243,9 @@ namespace OxyPlot.Blazor
         /// Sets the clipboard text.
         /// </summary>
         /// <param name="text">The text.</param>
-        public async void SetClipboardText(string text)
+        public void SetClipboardText(string text)
         {
-            if (_disposed) return;
-            // todo: not tested yet, don't know when it is called
-            // https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText
-            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            // not implemented
         }
 
         void AddEventCallback<T>(RenderTreeBuilder builder, int sequence, string name, Action<T> callback)
@@ -398,7 +396,6 @@ namespace OxyPlot.Blazor
             }
             builder.CloseElement();
         }
-
         protected override void OnAfterRender(bool firstRender)
         {
             if (firstRender)
@@ -443,7 +440,7 @@ namespace OxyPlot.Blazor
             };
 
         private static OxyMouseDownEventArgs TranslateMouseEventArgs(MouseEventArgs e)
-            => new ()
+            => new()
             {
                 Position = new ScreenPoint(e.OffsetX, e.OffsetY),
                 ChangedButton = TranslateButton(e),
@@ -451,7 +448,7 @@ namespace OxyPlot.Blazor
                 ModifierKeys = TranslateModifierKeys(e),
             };
         private static OxyMouseWheelEventArgs TranslateWheelEventArgs(WheelEventArgs e)
-            => new ()
+            => new()
             {
                 Position = new ScreenPoint(e.OffsetX, e.OffsetY),
                 Delta = (int)(e.DeltaY != 0 ? e.DeltaY : e.DeltaX),
@@ -459,7 +456,7 @@ namespace OxyPlot.Blazor
             };
 
         private static OxyKeyEventArgs TranslateKeyEventArgs(KeyboardEventArgs e)
-            => new ()
+            => new()
             {
                 Key = Enum.TryParse<OxyKey>(e.Key, true, out var oxyKey) ? oxyKey : OxyKey.Unknown,
                 ModifierKeys = TranslateModifierKeys(e),

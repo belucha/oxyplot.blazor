@@ -28,7 +28,7 @@ namespace OxyPlot.Blazor
         /// <summary>
         /// Tooltip(title) for next svg element
         /// </summary>
-        private string title;
+        private string? title;
 
         /// <summary>
         /// The clip path number
@@ -36,7 +36,6 @@ namespace OxyPlot.Blazor
         private int clipPathNumber = 1;
 
         private readonly RenderTreeBuilder _b;
-
         public int SequenceNumber { get; set; }
 
         /// <summary>
@@ -70,7 +69,7 @@ namespace OxyPlot.Blazor
             this.NumberFormat = "0.####";
             this.RendersToScreen = true;
         }
-        public IRenderContext TextMeasurer { get; set; }
+        public IRenderContext? TextMeasurer { get; set; }
 
         /// <summary>
         /// Gets or sets the number format.
@@ -91,7 +90,7 @@ namespace OxyPlot.Blazor
             OxyColor fill,
             OxyColor stroke,
             double thickness,
-            double[] dashArray = null,
+            double[]? dashArray = null,
             LineJoin lineJoin = LineJoin.Miter)
         {
             // http://oreilly.com/catalog/svgess/chapter/ch03.html
@@ -271,7 +270,7 @@ namespace OxyPlot.Blazor
             encodedImage.Append("image/png");
             encodedImage.Append(";base64,");
             encodedImage.Append(Convert.ToBase64String(imageData));
-            this.WriteAttributeString("xlink", "href", null, encodedImage.ToString());
+            this.WriteAttributeString("xlink", "href", "", encodedImage.ToString());
             this.WriteEndElement();
         }
 
@@ -366,7 +365,7 @@ namespace OxyPlot.Blazor
             ScreenPoint position,
             string text,
             OxyColor fill,
-            string fontFamily = null,
+            string? fontFamily = null,
             double fontSize = 10,
             double fontWeight = FontWeights.Normal,
             double rotate = 0,
@@ -696,7 +695,7 @@ namespace OxyPlot.Blazor
                 return OxySize.Empty;
             }
 
-            return this.TextMeasurer.MeasureText(text, fontFamily, fontSize, fontWeight);
+            return this.TextMeasurer?.MeasureText(text, fontFamily, fontSize, fontWeight)??OxySize.Empty;
         }
 
         /// <summary>

@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29509.3
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32210.238
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "oxyplot-demo", "OxyPlot-Demo\oxyplot-demo.csproj", "{1217270C-69B4-4173-8246-816A849E876D}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OxyPlot.Blazor", "OxyPlot.Blazor\OxyPlot.Blazor.csproj", "{F38E3293-C91B-4DBD-A5EE-6CE3989F119A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OxyPlot.Blazor.Server.Demo", "OxyPlot.Blazor.Server.Demo\OxyPlot.Blazor.Server.Demo.csproj", "{478F7D47-0B70-49DD-8F3B-F9FC0AD0F2A7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,14 +13,14 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{1217270C-69B4-4173-8246-816A849E876D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1217270C-69B4-4173-8246-816A849E876D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1217270C-69B4-4173-8246-816A849E876D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1217270C-69B4-4173-8246-816A849E876D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F38E3293-C91B-4DBD-A5EE-6CE3989F119A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F38E3293-C91B-4DBD-A5EE-6CE3989F119A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F38E3293-C91B-4DBD-A5EE-6CE3989F119A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F38E3293-C91B-4DBD-A5EE-6CE3989F119A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{478F7D47-0B70-49DD-8F3B-F9FC0AD0F2A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{478F7D47-0B70-49DD-8F3B-F9FC0AD0F2A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{478F7D47-0B70-49DD-8F3B-F9FC0AD0F2A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{478F7D47-0B70-49DD-8F3B-F9FC0AD0F2A7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
