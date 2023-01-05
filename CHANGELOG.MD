@@ -1,3 +1,8 @@
+## 2023-01-05 v2.3.0
+
+- net6.0 and net7.0 support
+- OxyPlot 2.1.2
+
 ## 2022-02-23 v2.1.2
 
 - sample project with .net 6
