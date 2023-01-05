@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- dot net 6.0
+- dot net 6.0 / net 7.0
 
 ## Usage
 

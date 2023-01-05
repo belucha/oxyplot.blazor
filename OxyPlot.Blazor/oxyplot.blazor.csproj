@@ -13,7 +13,15 @@
 		<Version></Version>
 		<Nullable>enable</Nullable>
 		<OutputType>Library</OutputType>
+		<PackageReadmeFile>README.MD</PackageReadmeFile>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Include="..\README.MD">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="OxyPlot.Core" Version="2.1.*" />
