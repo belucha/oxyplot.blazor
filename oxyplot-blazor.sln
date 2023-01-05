@@ -5,7 +5,14 @@ VisualStudioVersion = 17.1.32210.238
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OxyPlot.Blazor", "OxyPlot.Blazor\OxyPlot.Blazor.csproj", "{F38E3293-C91B-4DBD-A5EE-6CE3989F119A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OxyPlot.Blazor.Server.Demo", "OxyPlot.Blazor.Server.Demo\OxyPlot.Blazor.Server.Demo.csproj", "{478F7D47-0B70-49DD-8F3B-F9FC0AD0F2A7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OxyPlot.Blazor.Server.Demo", "OxyPlot.Blazor.Server.Demo\OxyPlot.Blazor.Server.Demo.csproj", "{478F7D47-0B70-49DD-8F3B-F9FC0AD0F2A7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{319E488D-E6CF-429F-92F3-396288CE526D}"
+	ProjectSection(SolutionItems) = preProject
+		CHANGELOG.MD = CHANGELOG.MD
+		.github\workflows\deploy-oxyplotblazor-nuget.yml = .github\workflows\deploy-oxyplotblazor-nuget.yml
+		README.MD = README.MD
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

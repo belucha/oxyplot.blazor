@@ -431,5 +431,4 @@ $RECYCLE.BIN/
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-/eloviz/wwwroot/LineChartTest.js
-/eloviz/wwwroot/LineChartTest.js.map
+nupkgs/

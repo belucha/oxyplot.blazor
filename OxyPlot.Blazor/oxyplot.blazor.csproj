@@ -10,7 +10,7 @@
 		<PackageId>OxyPlot.Blazor</PackageId>
 		<IsPackable>true</IsPackable>
 		<PackageTags>Chart,Web,Blazor,Oxyplot</PackageTags>
-		<Version>2.3.0</Version>
+		<Version></Version>
 		<Nullable>enable</Nullable>
 		<OutputType>Library</OutputType>
 	</PropertyGroup>
