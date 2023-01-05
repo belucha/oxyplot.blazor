@@ -8,6 +8,7 @@
 		<RepositoryUrl>https://github.com/belucha/oxyplot.blazor</RepositoryUrl>
 		<Description>Blazor Binding for OxyPlot</Description>
 		<PackageId>OxyPlot.Blazor</PackageId>
+		<IsPackable>true</IsPackable>
 		<PackageTags>Chart,Web,Blazor,Oxyplot</PackageTags>
 		<Version>2.3.0</Version>
 		<Nullable>enable</Nullable>
