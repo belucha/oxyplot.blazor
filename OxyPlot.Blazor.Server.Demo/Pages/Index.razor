@@ -4,13 +4,14 @@
 @using OxyPlot.Axes
 @using OxyPlot.Series
 @using OxyPlot.Blazor
-
 <h3>Blazored Oxy Plot Test</h3>
-<BlazorPlotView Width="100%" Height="300px" Model="_model1" />
+<BlazorPlotView @ref=@_view1 Width="100%" Height="300px" Model="_model1" Controller=@_c />
 <BlazorPlotView Width="100%" Height="300px" Model="_model2" />
 
 @code {
     System.Timers.Timer _update = new System.Timers.Timer(1000);
+    PlotController _c = new();
+    BlazorPlotView? _view1;
     PlotModel? _model1;
     PlotModel? _model2;
     DataPoint[] _data = Array.Empty<DataPoint>();
@@ -19,7 +20,10 @@
     public static PlotModel BarSeries()
     {
 
-        var model = new PlotModel { Title = "Cake Type Popularity" };
+        var model = new PlotModel { 
+            Title = "Cake Type Popularity",
+            Subtitle = "Use 'I' and 'O' Keys to zoom, 'F1' resets zoom!",
+        };
         //generate a random percentage distribution between the 5
         //cake-types (see axis below)
         var rand = new Random();
@@ -30,10 +34,13 @@
         }
         var sum = cakePopularity.Sum();
 
+        model.Axes.Add(new LinearAxis { Key = "Value", Position = AxisPosition.Left, });
         var barSeries = new BarSeries
             {
+                XAxisKey = "Value",
+                YAxisKey = "CakeAxis",
                 ItemsSource = new List<BarItem>(new[]
-                    {
+                        {
                 new BarItem{ Value = (cakePopularity[0] / sum * 100) },
                 new BarItem{ Value = (cakePopularity[1] / sum * 100) },
                 new BarItem{ Value = (cakePopularity[2] / sum * 100) },
@@ -41,13 +48,14 @@
                 new BarItem{ Value = (cakePopularity[4] / sum * 100) }
             }),
                 LabelPlacement = LabelPlacement.Inside,
-                LabelFormatString = "{0:.00}%"
+                LabelFormatString = "{0:.00}%",
+                TrackerFormatString = "Hello {0} {1}",
+                //TrackerKey = "x",
             };
         model.Series.Add(barSeries);
-
         model.Axes.Add(new CategoryAxis
             {
-                Position = AxisPosition.Left,
+                Position = AxisPosition.Bottom,
                 Key = "CakeAxis",
                 ItemsSource = new[] {
                     "Apple cake",
@@ -79,7 +87,7 @@
 
     void UpdateData(object? sender, EventArgs e) => InvokeAsync(() =>
     {
-        if (_update.Enabled && _model2!=null)
+        if (_update.Enabled && _model2 != null)
         {
             var random = new Random();
             var idx = random.Next(_data.Length);
@@ -90,10 +98,24 @@
 
     protected override void OnInitialized()
     {
+        _c.UnbindAll();
+        _c.BindMouseEnter(PlotCommands.HoverSnapTrack);
+        _c.BindKeyDown(OxyKey.I, PlotCommands.ZoomIn);
+        _c.BindKeyDown(OxyKey.O, PlotCommands.ZoomOut);
+        _c.BindKeyDown(OxyKey.F1, PlotCommands.Reset);
         _model2 = BuildModel();
         _model1 = BarSeries();
         _update.Elapsed += UpdateData;
         _update.Start();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        if (firstRender && _view1!=null)
+        {
+            await _view1.FocusAsync();
+        }
     }
 
     void IDisposable.Dispose()

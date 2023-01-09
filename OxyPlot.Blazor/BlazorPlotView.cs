@@ -1,41 +1,71 @@
 ﻿#nullable disable
 using System;
-using System.Linq;
-using System.Text;
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.AspNetCore.Components.Web;
-using Microsoft.JSInterop;
 using System.Timers;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Logging;
+using System.Xml.Linq;
+using OxyPlot.Series;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace OxyPlot.Blazor
 {
     public class BlazorPlotView : ComponentBase, IPlotView, IDisposable
     {
+        const double TrackerOffset = 10.0;
         readonly Timer _timer = new(500) { Enabled = false, };
-        bool _disposed;
+        private ElementReference _svg;
+        private TrackerHitResult _tracker;
+        private PlotModel _currentModel;
+        private OxyRect _svgPos = new(0, 0, 0, 0);
+        private IPlotController _defaultController;
+        private bool _updateDataFlag = true;
+        private OxyRect _zoomRectangle;
+        private bool _disposed;
+        private bool _preventKey;
         [Inject] OxyPlotJsInterop OxyJS { get; set; }
         [Parameter] public string PreserveAspectRation { get; set; } = "none";
         [Parameter] public string Width { get; set; }
         [Parameter] public string Height { get; set; }
-        [Parameter]
-        public bool TrackerEnabled
-        {
-            get => _trackerEnabled;
-            set
-            {
-                if (_trackerEnabled != value)
-                {
-                    _trackerEnabled = value;
-                    if (_trackerEnabled)
-                    {
-                        StateHasChanged();
-                    }
-                }
-            }
-        }
+        [Parameter] public string Class { get; set; }
+        [Parameter] public string Style { get; set; }
+        /// <summary>
+        /// Set to -1 to disable keyboard binding
+        /// </summary>
+        [Parameter] public int TabIndex { get; set; }
+        /// <summary>
+        /// BackgroundColor of the Tracker (defaults to Model.PlotAreaBackground)
+        /// </summary>
+        [Parameter] public OxyColor? TrackerBackground { get; set; }
+        /// <summary>
+        /// BackgroundColor of the Tracker (defaults to Model.TextColor)
+        /// </summary>
+        [Parameter] public OxyColor? TrackerStrokeColor { get; set; }
+        /// <summary>
+        /// TextColor of the Tracker (defaults to Model.PlotAreaBackground)
+        /// </summary>
+        [Parameter] public OxyColor? TrackerTextColor { get; set; }
+        /// <summary>
+        /// tracker border stroke thickness (defaults to 0)
+        /// </summary>
+        [Parameter] public double TrackerStrokeThickness { get; set; } = 0.0;
+        /// <summary>
+        /// tracker font size (defaults to Model.DefaultFontSize)
+        /// </summary>
+        [Parameter] public double? TrackerFontSize { get; set; }
+        /// <summary>
+        /// tracker font family (defaults to Model.DefaultFontFamily)
+        /// </summary>
+        [Parameter] public string TrackerFontFamily { get; set; }
+        [Parameter] public double TrackerFontWeight { get; set; } = 400.0;
+        /// <summary>
+        /// tracker padding around text (width=50, height=20)
+        /// </summary>
+        [Parameter] public OxySize? TrackerPadding { get; set; }
+        [Parameter] public bool TrackerEnabled { get; set; } = true;
         /// <summary>
         /// Gets or sets the plot controller.
         /// </summary>
@@ -44,24 +74,7 @@ namespace OxyPlot.Blazor
         /// <summary>
         /// Gets or sets the model.
         /// </summary>
-        [Parameter]
-        public PlotModel Model
-        {
-            get => model;
-            set
-            {
-                if (this.model != value)
-                {
-                    this.model = value;
-                    this.OnModelChanged();
-                }
-            }
-        }
-
-        private ElementReference _svg;
-        private TrackerHitResult _tracker;
-        private bool _trackerEnabled = true;
-        private OxyRect _svgPos = new(0, 0, 0, 0);
+        [Parameter][Required] public PlotModel Model { get; set; }
 
         async void TimerExpired(object _, EventArgs __)
         {
@@ -73,50 +86,35 @@ namespace OxyPlot.Blazor
             }
             catch
             {
-                // swallow thisone
+                // swallow this one
             }
         }
+
+        public ValueTask FocusAsync() => _svg.Id!=null?_svg.FocusAsync():ValueTask.CompletedTask;
         async void UpdateSvgBoundingRect()
         {
             if (_svg.Id == null || _disposed)
                 return;
-            var n = await OxyJS.GetBoundingClientRectAsync(_svg);
-            // OxyRect.Equals is very picky
-            if (false
-                || Math.Abs(n.Left - _svgPos.Left) > 0.5
-                || Math.Abs(n.Top - _svgPos.Top) > 0.5
-                || Math.Abs(n.Width - _svgPos.Width) > 0.5
-                || Math.Abs(n.Height - _svgPos.Height) > 0.5
-                )
+            try
             {
-                _svgPos = n;
-                StateHasChanged();
+                var n = await OxyJS.GetBoundingClientRectAsync(_svg);
+                // OxyRect.Equals is very picky
+                if (false
+                    || Math.Abs(n.Left - _svgPos.Left) > 0.5
+                    || Math.Abs(n.Top - _svgPos.Top) > 0.5
+                    || Math.Abs(n.Width - _svgPos.Width) > 0.5
+                    || Math.Abs(n.Height - _svgPos.Height) > 0.5
+                    )
+                {
+                    _svgPos = n;
+                    StateHasChanged();
+                }
+            }
+            catch
+            {
+                // swallow all errors
             }
         }
-        /// <summary>
-        /// The current model (holding a reference to this plot view).
-        /// </summary>
-        private PlotModel currentModel;
-
-        /// <summary>
-        /// The model.
-        /// </summary>
-        private PlotModel model;
-
-        /// <summary>
-        /// The default controller.
-        /// </summary>
-        private IPlotController defaultController;
-
-        /// <summary>
-        /// The update data flag.
-        /// </summary>
-        private bool updateDataFlag = true;
-
-        /// <summary>
-        /// The zoom rectangle.
-        /// </summary>
-        private OxyRect zoomRectangle;
 
         /// <summary>
         /// Gets the actual model in the view.
@@ -124,13 +122,13 @@ namespace OxyPlot.Blazor
         /// <value>
         /// The actual model.
         /// </value>
-        Model IView.ActualModel => Model;
+        Model IView.ActualModel => _currentModel;
 
         /// <summary>
         /// Gets the actual model.
         /// </summary>
         /// <value>The actual model.</value>
-        public PlotModel ActualModel => Model;
+        public PlotModel ActualModel => _currentModel;
 
         /// <summary>
         /// Gets the actual controller.
@@ -149,7 +147,7 @@ namespace OxyPlot.Blazor
         /// Gets the actual plot controller.
         /// </summary>
         /// <value>The actual plot controller.</value>
-        public IPlotController ActualController => this.Controller ?? (this.defaultController ??= new PlotController());
+        public IPlotController ActualController => Controller ?? (_defaultController ??= new PlotController());
 
         /// <summary>
         /// Shows the tracker.
@@ -157,11 +155,7 @@ namespace OxyPlot.Blazor
         /// <param name="data">The data.</param>
         public void ShowTracker(TrackerHitResult data)
         {
-            if (_tracker != data)
-            {
-                _tracker = data;
-                StateHasChanged();
-            }
+            _tracker = data;
             StateHasChanged();
         }
 
@@ -170,7 +164,8 @@ namespace OxyPlot.Blazor
         /// </summary>
         public void HideTracker()
         {
-            ShowTracker(null);
+            _tracker = null;
+            StateHasChanged();
         }
 
         /// <summary>
@@ -178,12 +173,7 @@ namespace OxyPlot.Blazor
         /// </summary>
         public void HideZoomRectangle()
         {
-            this.zoomRectangle = OxyRect.Create(0, 0, 0, 0);
-            this.Invalidate();
-        }
-
-        protected void Invalidate()
-        {
+            _zoomRectangle = OxyRect.Create(0, 0, 0, 0);
             StateHasChanged();
         }
 
@@ -193,28 +183,8 @@ namespace OxyPlot.Blazor
         /// <param name="updateData">if set to <c>true</c>, all data collections will be updated.</param>
         public void InvalidatePlot(bool updateData)
         {
-            this.updateDataFlag |= updateData;
-            this.Invalidate();
-        }
-
-        /// <summary>
-        /// Called when the Model property has been changed.
-        /// </summary>
-        public void OnModelChanged()
-        {
-            if (this.currentModel != null)
-            {
-                ((IPlotModel)this.currentModel).AttachPlotView(null);
-                this.currentModel = null;
-            }
-
-            if (this.Model != null)
-            {
-                ((IPlotModel)this.Model).AttachPlotView(this);
-                this.currentModel = this.Model;
-
-                this.InvalidatePlot(true);
-            }
+            _updateDataFlag |= updateData;
+            StateHasChanged();
         }
 
         /// <summary>
@@ -235,8 +205,8 @@ namespace OxyPlot.Blazor
         /// <param name="rectangle">The rectangle.</param>
         public void ShowZoomRectangle(OxyRect rectangle)
         {
-            this.zoomRectangle = rectangle;
-            this.Invalidate();
+            _zoomRectangle = rectangle;
+            StateHasChanged();
         }
 
         /// <summary>
@@ -248,16 +218,34 @@ namespace OxyPlot.Blazor
             // not implemented
         }
 
+        protected override void OnParametersSet()
+        {
+            if (_currentModel != Model)
+            {
+                if (_currentModel != null)
+                {
+                    ((IPlotModel)_currentModel).AttachPlotView(null);
+                    _currentModel = null;
+                }
+                if (Model != null)
+                {
+                    ((IPlotModel)Model).AttachPlotView(this);
+                    _currentModel = Model;
+                }
+                InvalidatePlot(true);
+            }
+        }
+
         void AddEventCallback<T>(RenderTreeBuilder builder, int sequence, string name, Action<T> callback)
         {
+            builder.AddAttribute(sequence, name, EventCallback.Factory.Create<T>(this, callback));
             builder.AddEventPreventDefaultAttribute(sequence, name, true);
             builder.AddEventStopPropagationAttribute(sequence, name, true);
-            builder.AddAttribute(sequence, name, EventCallback.Factory.Create<T>(this, callback));
         }
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            if (this.currentModel == null)
+            if (_currentModel == null)
             {
                 _svg = new ElementReference();
                 _timer.Enabled = false;
@@ -265,15 +253,16 @@ namespace OxyPlot.Blazor
             }
             // note this gist about seequence numbers
             // https://gist.github.com/SteveSandersonMS/ec232992c2446ab9a0059dd0fbc5d0c3
-            builder.OpenElement(0, "svg");
-            if (!String.IsNullOrEmpty(Width))
+            builder.OpenElement(1, "svg");
+            builder.AddAttribute(2, "tabindex", TabIndex);
+            if (!string.IsNullOrEmpty(Width))
             {
-                builder.AddAttribute(1, "width", Width);
+                builder.AddAttribute(3, "width", Width);
             }
 
-            if (!String.IsNullOrEmpty(Height))
+            if (!string.IsNullOrEmpty(Height))
             {
-                builder.AddAttribute(2, "height", Height);
+                builder.AddAttribute(4, "height", Height);
             }
             // if the svg size is specified in pixels, we can start rendering right now
             if (_svgPos.Width == 0 && _svgPos.Height == 0
@@ -284,92 +273,92 @@ namespace OxyPlot.Blazor
             }
             if (_svgPos.Width > 0)
             {
-                builder.AddAttribute(3, "viewBox", FormattableString.Invariant($"0 0 {_svgPos.Width} {_svgPos.Height}"));
-                if (!String.IsNullOrEmpty(PreserveAspectRation))
+                builder.AddAttribute(5, "viewBox", FormattableString.Invariant($"0 0 {_svgPos.Width} {_svgPos.Height}"));
+                if (!string.IsNullOrEmpty(PreserveAspectRation))
                 {
-                    builder.AddAttribute(4, "preserveAspectRatio", PreserveAspectRation);
+                    builder.AddAttribute(6, "preserveAspectRatio", PreserveAspectRation);
                 }
                 // available event handlers
-                // https://github.com/aspnet/AspNetCore/blob/master/src/Components/Web/ref/Microsoft.AspNetCore.Components.Web.netcoreapp.cs
+                // https://github.com/dotnet/aspnetcore/blob/main/src/Components/Web/src/Web/EventHandlers.cs  
                 // mouse handlers
-                AddEventCallback<MouseEventArgs>(builder, 5, "onmousedown", e => ActualController.HandleMouseDown(this, TranslateMouseEventArgs(e)));
-                AddEventCallback<MouseEventArgs>(builder, 5, "onmousemove", e => ActualController.HandleMouseMove(this, TranslateMouseEventArgs(e)));
-                AddEventCallback<MouseEventArgs>(builder, 5, "onmouseup", e => ActualController.HandleMouseUp(this, TranslateMouseEventArgs(e)));
-                AddEventCallback<MouseEventArgs>(builder, 5, "onmousein", e => ActualController.HandleMouseEnter(this, TranslateMouseEventArgs(e)));
-                AddEventCallback<MouseEventArgs>(builder, 5, "onmouseout", e => ActualController.HandleMouseEnter(this, TranslateMouseEventArgs(e)));
-                // wheel, prevent default does not work
-                builder.AddAttribute(6, "onmousewheel", EventCallback.Factory.Create<WheelEventArgs>(this, e => ActualController.HandleMouseWheel(this, TranslateWheelEventArgs(e))));
-                builder.AddEventPreventDefaultAttribute(6, "onmousewheel", true);
-                builder.AddEventStopPropagationAttribute(6, "onmousewheel", true);
-                // todo: keyboard handlers --> they don't seem to work
-                //                AddEventCallback<KeyboardEventArgs>(builder, 5, "onkeypress", e => ActualController.HandleKeyDown(this, TranslateKeyEventArgs(e)));
-                // todo: add missing gesture support
-                builder.AddEventPreventDefaultAttribute(7, "oncontextmenu", true);
-                builder.AddEventStopPropagationAttribute(7, "oncontextmenu", true);
+                AddEventCallback<MouseEventArgs>(builder, 7, "onmousedown", e => ActualController.HandleMouseDown(this, TranslateMouseEventArgs(e)));
+                AddEventCallback<MouseEventArgs>(builder, 8, "onmouseup", e => ActualController.HandleMouseUp(this, TranslateMouseEventArgs(e)));
+                AddEventCallback<MouseEventArgs>(builder, 9, "oncontextmenu", e => ActualController.HandleMouseUp(this, TranslateMouseEventArgs(e)));
+                AddEventCallback<MouseEventArgs>(builder, 10, "onmousemove", e => ActualController.HandleMouseMove(this, TranslateMouseEventArgs(e)));
+                AddEventCallback<MouseEventArgs>(builder, 11, "onmouseenter", e => ActualController.HandleMouseEnter(this, TranslateMouseEventArgs(e)));
+                AddEventCallback<MouseEventArgs>(builder, 12, "onmouseleave", e => ActualController.HandleMouseEnter(this, TranslateMouseEventArgs(e)));
+                AddEventCallback<WheelEventArgs>(builder, 13, "onmousewheel", e => ActualController.HandleMouseWheel(this, TranslateWheelEventArgs(e)));
+                // don't prevent default for onkeydown
+                builder.AddAttribute(14, "onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, HandleKeyDownEvent));
+                builder.AddEventPreventDefaultAttribute(15, "onkeydown", _preventKey);
             }
-            builder.AddElementReferenceCapture(8, elementReference =>
+            builder.AddAttribute(15, "class", Class);
+            builder.AddAttribute(16, "style", Style);
+            builder.AddElementReferenceCapture(17, elementReference =>
             {
                 _svg = elementReference;
                 _timer.Enabled = _svg.Id != null;
             });
-            if (_svgPos.Width > 0)
+            if (_svgPos.Width > 0 && _currentModel is IPlotModel plotModel)
             {
-                var model = ((IPlotModel)this.currentModel);
                 var renderer = new BlazorSvgFragmentRenderContext(builder)
                 {
-                    TextMeasurer = new PdfRenderContext(_svgPos.Width, _svgPos.Height, model?.Background ?? OxyColors.Transparent),
+                    TextMeasurer = new PdfRenderContext(_svgPos.Width, _svgPos.Height, plotModel.Background),
                 };
 
-                if (model != null)
+                plotModel.Update(_updateDataFlag);
+                _updateDataFlag = false;
+
+                renderer.SequenceNumber = 20;
+                if (plotModel.Background != OxyColors.Transparent)
                 {
-                    model.Update(updateDataFlag);
-                    updateDataFlag = false;
-
-                    renderer.SequenceNumber = 11;
-                    if (model.Background != OxyColors.Transparent)
-                    {
-                        renderer.FillRectangle(OxyRect.Create(0, 0, _svgPos.Width, _svgPos.Height), model.Background, EdgeRenderingMode.Automatic);
-                    }
-                    renderer.SequenceNumber = 10;
-
-                    model.Render(renderer, new OxyRect(0, 0, _svgPos.Width, _svgPos.Height));
+                    renderer.FillRectangle(OxyRect.Create(0, 0, _svgPos.Width, _svgPos.Height), plotModel.Background, EdgeRenderingMode.Automatic);
                 }
+                renderer.SequenceNumber = 30;
+
+                plotModel.Render(renderer, new OxyRect(0, 0, _svgPos.Width, _svgPos.Height));
+
                 // zoom rectangle
-                if (this.zoomRectangle.Width > 0 || this.zoomRectangle.Height > 0)
+                if (_zoomRectangle.Width > 0 || _zoomRectangle.Height > 0)
                 {
-                    renderer.SequenceNumber = 15;
-                    renderer.DrawRectangle(zoomRectangle, OxyColor.FromArgb(0x40, 0xFF, 0xFF, 0x00), OxyColors.Black, 0.5, EdgeRenderingMode.Automatic);
+                    renderer.SequenceNumber = 40;
+                    renderer.DrawRectangle(_zoomRectangle, OxyColor.FromArgb(0x40, 0xFF, 0xFF, 0x00), OxyColors.Black, 0.5, EdgeRenderingMode.Automatic);
                 }
                 // tracker
-                if (_tracker != null && _trackerEnabled)
+                if (_tracker != null && TrackerEnabled)
                 {
-                    renderer.SequenceNumber = 20;
-                    string fontFamily = null;
-                    double fontSize = 10;
-                    double fontWeight = 400;
+                    var backgroundColor = TrackerBackground ?? _currentModel.PlotAreaBackground;
+                    var textColor = TrackerTextColor ?? _currentModel.TextColor;
+                    var strokeColor = TrackerStrokeColor ?? _currentModel.PlotAreaBorderColor;
+                    var strokeThickness = TrackerStrokeThickness;
+                    var fontFamily = TrackerFontFamily ?? _currentModel.DefaultFont;
+                    var fontSize = TrackerFontSize ?? _currentModel.DefaultFontSize;
+                    var fontWeight = TrackerFontWeight;
+                    var marigin = TrackerPadding ?? new OxySize(50, 20);
+                    renderer.SequenceNumber = 50;
                     var s = renderer.MeasureText(_tracker.Text, fontFamily, fontSize, fontWeight);
-                    var x = _tracker.Position.X + 10;
-                    var y = _tracker.Position.Y + 10;
-                    var w = s.Width + 50;
-                    var h = s.Height + 20;
+                    var x = _tracker.Position.X + TrackerOffset;
+                    var y = _tracker.Position.Y + TrackerOffset;
+                    var w = s.Width + marigin.Width;
+                    var h = s.Height + marigin.Height;
                     // check, if the tracker goes of the svg area?
                     if ((x + w) > _svgPos.Width)
                     {
                         // right side out, fix it
-                        x = _tracker.Position.X - w - 5;
+                        x = _tracker.Position.X - w;
                     }
                     if ((y + h) > _svgPos.Height)
                     {
                         // bottom out, fix it
-                        y = _tracker.Position.Y - h - 5;
+                        y = _tracker.Position.Y - h;
                     }
                     // build rect and fill
                     var r = new OxyRect(x, y, w, h);
-                    renderer.FillRectangle(r, currentModel.Background, EdgeRenderingMode.Automatic);
+                    renderer.DrawRectangle(r, fill: backgroundColor, stroke: strokeColor, thickness: strokeThickness, EdgeRenderingMode.Automatic);
                     renderer.DrawText(
                           p: r.Center
                         , text: _tracker.Text
-                        , c: currentModel.TitleColor
+                        , c: textColor
                         , fontFamily: fontFamily
                         , fontSize: fontSize
                         , fontWeight: fontWeight
@@ -378,20 +367,6 @@ namespace OxyPlot.Blazor
                         , valign: VerticalAlignment.Middle
                         , maxSize: null
                     );
-                    /*
-                    renderer.DrawClippedText(clippingRectangle: r
-                        , p: p
-                        , text: _tracker.Text
-                        , fill: currentModel.LegendTextColor // currentModel.LegendBackground
-                        , fontFamily: null
-                        , fontSize: 10
-                        , fontWeight: 400
-                        , rotate: 0
-                        , horizontalAlignment: HorizontalAlignment.Center
-                        , verticalAlignment: VerticalAlignment.Middle
-                        , maxSize: null
-                    );
-                    */
                 }
             }
             builder.CloseElement();
@@ -455,12 +430,77 @@ namespace OxyPlot.Blazor
                 ModifierKeys = TranslateModifierKeys(e),
             };
 
-        private static OxyKeyEventArgs TranslateKeyEventArgs(KeyboardEventArgs e)
-            => new()
+        static OxyKey ParseKey(string key)
+        {
+            switch (key.Length)
             {
-                Key = Enum.TryParse<OxyKey>(e.Key, true, out var oxyKey) ? oxyKey : OxyKey.Unknown,
-                ModifierKeys = TranslateModifierKeys(e),
-            };
+                case 0: // invalid
+                    return OxyKey.Unknown;
+                case 1: // single keys
+                    switch (key[0])
+                    {
+                        case '*': return OxyKey.Multiply;
+                        case '/': return OxyKey.Divide;
+                        case '+': return OxyKey.Add;
+                        case '-': return OxyKey.Subtract;
+                        case char c when c >= 'a' && c <= 'z':
+                            return OxyKey.A + c - 'a';
+                        case char c when c >= 'A' && c <= 'Z':
+                            return OxyKey.A + c - 'A';
+                        case char c when c >= '0' && c <= '9':
+                            return OxyKey.D0 + c - '0';
+                        case ' ':
+                            return OxyKey.Space;
+                        default:
+                            return OxyKey.Unknown;
+                    }
+
+                case 2: // function keys F1-F9
+                    if (key[0] == 'F' && key[1] >= '1' && key[1] <= '9')
+                        return OxyKey.F1 + key[1] - '1';
+                    return OxyKey.Unknown;
+                default: // Other
+                    return key switch
+                    {
+                        "Enter" => OxyKey.Enter,
+                        "Tab" => OxyKey.Tab,
+                        "PageUp" => OxyKey.PageUp,
+                        "PageDown" => OxyKey.PageDown,
+                        "Home" => OxyKey.Home,
+                        "End" => OxyKey.End,
+                        "Escape" => OxyKey.Escape,
+                        "Backspace" => OxyKey.Backspace,
+                        "Insert" => OxyKey.Insert,
+                        "Delete" => OxyKey.Delete,
+                        "ArrowLeft" => OxyKey.Left,
+                        "ArrowRight" => OxyKey.Right,
+                        "ArrowUp" => OxyKey.Up,
+                        "ArrowDown" => OxyKey.Down,
+                        "F10" => OxyKey.F10,
+                        "F11" => OxyKey.F11,
+                        "F12" => OxyKey.F12,
+                        _ => OxyKey.Unknown,
+                    };
+            }
+        }
+
+        private void HandleKeyDownEvent(KeyboardEventArgs e)
+        {
+            var oxyKey = ParseKey(e.Key);
+            if (oxyKey != OxyKey.Unknown)
+            {
+                var oe = new OxyKeyEventArgs()
+                {
+                    Key = oxyKey,
+                    ModifierKeys = TranslateModifierKeys(e),
+                };
+                _preventKey = ActualController.HandleKeyDown(this, oe);
+            }
+            else
+            {
+                _preventKey = false;
+            }
+        }
 
         /// <summary>
         /// translate OxyPlot Cursor type to browser cursor type name

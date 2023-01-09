@@ -1,3 +1,11 @@
+## 2023-01-09 v2.4.0
+
+- add: keyboard support
+- add: Class and Style parameters
+- add: FocusAsync()
+- catch right click (contextmenu)
+- add: tracker formatting parameters
+
 ## 2023-01-05 v2.3.0
 
 - net6.0 and net7.0 support

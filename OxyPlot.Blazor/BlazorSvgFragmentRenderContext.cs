@@ -42,10 +42,7 @@ namespace OxyPlot.Blazor
         /// Sets the tooltip for the next element
         /// </summary>
         /// <param name="text"></param>
-        public override void SetToolTip(string text)
-        {
-            title = text;
-        }
+        public override void SetToolTip(string text) => title = text;
         /// <summary>
         /// Adds the title if present
         /// </summary>
@@ -66,8 +63,8 @@ namespace OxyPlot.Blazor
         public BlazorSvgFragmentRenderContext(RenderTreeBuilder renderTreeBuilder)
         {
             _b = renderTreeBuilder ?? throw new ArgumentNullException(nameof(renderTreeBuilder));
-            this.NumberFormat = "0.####";
-            this.RendersToScreen = true;
+            NumberFormat = "0.####";
+            RendersToScreen = true;
         }
         public IRenderContext? TextMeasurer { get; set; }
 
@@ -101,7 +98,7 @@ namespace OxyPlot.Blazor
             }
             else
             {
-                style.AppendFormat("fill:{0};", this.ColorToString(fill));
+                style.AppendFormat("fill:{0};", ColorToString(fill));
                 if (fill.A != 0xFF)
                 {
                     style.AppendFormat(CultureInfo.InvariantCulture, "fill-opacity:{0};", fill.A / 255.0);
@@ -114,8 +111,8 @@ namespace OxyPlot.Blazor
             }
             else
             {
-                string formatString = "stroke:{0};stroke-width:{1:" + this.NumberFormat + "}";
-                style.AppendFormat(CultureInfo.InvariantCulture, formatString, this.ColorToString(stroke), thickness);
+                string formatString = "stroke:{0};stroke-width:{1:" + NumberFormat + "}";
+                style.AppendFormat(CultureInfo.InvariantCulture, formatString, ColorToString(stroke), thickness);
                 switch (lineJoin)
                 {
                     case LineJoin.Round:
@@ -156,26 +153,20 @@ namespace OxyPlot.Blazor
         public void WriteEllipse(double x, double y, double width, double height, string style, EdgeRenderingMode edgeRenderingMode)
         {
             // http://www.w3.org/TR/SVG/shapes.html#EllipseElement
-            this.WriteStartElement("ellipse");
-            this.WriteAttributeString("cx", x + (width / 2)); ;
-            this.WriteAttributeString("cy", y + (height / 2));
-            this.WriteAttributeString("rx", width / 2);
-            this.WriteAttributeString("ry", height / 2);
-            this.WriteAttributeString("style", style);
-            this.WriteEdgeRenderingModeAttribute(edgeRenderingMode);
-            this.WriteEndElement();
+            WriteStartElement("ellipse");
+            WriteAttributeString("cx", x + (width / 2)); ;
+            WriteAttributeString("cy", y + (height / 2));
+            WriteAttributeString("rx", width / 2);
+            WriteAttributeString("ry", height / 2);
+            WriteAttributeString("style", style);
+            WriteEdgeRenderingModeAttribute(edgeRenderingMode);
+            WriteEndElement();
         }
 
-        protected override void SetClip(OxyRect clippingRectangle)
-        {
-            this.BeginClip(clippingRectangle.Left, clippingRectangle.Top, clippingRectangle.Width, clippingRectangle.Height);
-        }
+        protected override void SetClip(OxyRect clippingRectangle) => BeginClip(clippingRectangle.Left, clippingRectangle.Top, clippingRectangle.Width, clippingRectangle.Height);
 
         /// <inheritdoc/>
-        protected override void ResetClip()
-        {
-            this.EndClip();
-        }
+        protected override void ResetClip() => EndClip();
 
         /// <summary>
         /// Sets a clipping rectangle.
@@ -189,31 +180,28 @@ namespace OxyPlot.Blazor
             // http://www.w3.org/TR/SVG/masking.html
             // https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath
             // http://www.svgbasics.com/clipping.html
-            var clipPath = $"clipPath{this.clipPathNumber++}";
+            var clipPath = $"clipPath{clipPathNumber++}";
 
-            this.WriteStartElement("defs");
-            this.WriteStartElement("clipPath");
-            this.WriteAttributeString("id", clipPath);
-            this.WriteStartElement("rect");
-            this.WriteAttributeString("x", x);
-            this.WriteAttributeString("y", y);
-            this.WriteAttributeString("width", width);
-            this.WriteAttributeString("height", height);
-            this.WriteEndElement(); // rect
-            this.WriteEndElement(); // clipPath
-            this.WriteEndElement(); // defs
+            WriteStartElement("defs");
+            WriteStartElement("clipPath");
+            WriteAttributeString("id", clipPath);
+            WriteStartElement("rect");
+            WriteAttributeString("x", x);
+            WriteAttributeString("y", y);
+            WriteAttributeString("width", width);
+            WriteAttributeString("height", height);
+            WriteEndElement(); // rect
+            WriteEndElement(); // clipPath
+            WriteEndElement(); // defs
 
-            this.WriteStartElement("g");
-            this.WriteAttributeString("clip-path", $"url(#{clipPath})");
+            WriteStartElement("g");
+            WriteAttributeString("clip-path", $"url(#{clipPath})");
         }
 
         /// <summary>
         /// Resets the clipping rectangle.
         /// </summary>
-        public void EndClip()
-        {
-            this.WriteEndElement(); // g
-        }
+        public void EndClip() => WriteEndElement(); // g
 
         /// <summary>
         /// Writes a portion of the specified image.
@@ -242,9 +230,9 @@ namespace OxyPlot.Blazor
             double width = image.Width / srcWidth * destWidth;
             double y = destY - (srcY / srcHeight * destHeight);
             double height = image.Height / srcHeight * destHeight;
-            this.BeginClip(destX, destY, destWidth, destHeight);
-            this.WriteImage(x, y, width, height, image);
-            this.EndClip();
+            BeginClip(destX, destY, destWidth, destHeight);
+            WriteImage(x, y, width, height, image);
+            EndClip();
         }
 
         /// <summary>
@@ -258,20 +246,20 @@ namespace OxyPlot.Blazor
         public void WriteImage(double x, double y, double width, double height, OxyImage image)
         {
             // http://www.w3.org/TR/SVG/shapes.html#ImageElement
-            this.WriteStartElement("image");
-            this.WriteAttributeString("x", x);
-            this.WriteAttributeString("y", y);
-            this.WriteAttributeString("width", width);
-            this.WriteAttributeString("height", height);
-            this.WriteAttributeString("preserveAspectRatio", "none");
+            WriteStartElement("image");
+            WriteAttributeString("x", x);
+            WriteAttributeString("y", y);
+            WriteAttributeString("width", width);
+            WriteAttributeString("height", height);
+            WriteAttributeString("preserveAspectRatio", "none");
             var imageData = image.GetData();
             var encodedImage = new StringBuilder();
             encodedImage.Append("data:");
             encodedImage.Append("image/png");
             encodedImage.Append(";base64,");
             encodedImage.Append(Convert.ToBase64String(imageData));
-            this.WriteAttributeString("xlink", "href", "", encodedImage.ToString());
-            this.WriteEndElement();
+            WriteAttributeString("xlink", "href", "", encodedImage.ToString());
+            WriteEndElement();
         }
 
         /// <summary>
@@ -286,13 +274,13 @@ namespace OxyPlot.Blazor
             // http://www.w3schools.com/svg/svg_line.asp
             if (double.IsFinite(p1.X) && double.IsFinite(p1.Y) && double.IsFinite(p2.X) && double.IsFinite(p2.Y))
             {
-                this.WriteStartElement("line");
-                this.WriteAttributeString("x1", p1.X);
-                this.WriteAttributeString("y1", p1.Y);
-                this.WriteAttributeString("x2", p2.X);
-                this.WriteAttributeString("y2", p2.Y);
-                this.WriteAttributeString("style", style);
-                this.WriteEndElement();
+                WriteStartElement("line");
+                WriteAttributeString("x1", p1.X);
+                WriteAttributeString("y1", p1.Y);
+                WriteAttributeString("x2", p2.X);
+                WriteAttributeString("y2", p2.Y);
+                WriteAttributeString("style", style);
+                WriteEndElement();
             }
         }
 
@@ -304,12 +292,12 @@ namespace OxyPlot.Blazor
         public void WritePolygon(IEnumerable<ScreenPoint> points, string style, EdgeRenderingMode edgeRenderingMode)
         {
             // http://www.w3.org/TR/SVG/shapes.html#PolygonElement
-            this.WriteStartElement("polygon");
-            this.WriteAttributeString("points", this.PointsToString(points));
-            this.WriteAttributeString("style", style);
-            this.WriteEdgeRenderingModeAttribute(edgeRenderingMode);
-            this.WriteTitle();
-            this.WriteEndElement();
+            WriteStartElement("polygon");
+            WriteAttributeString("points", PointsToString(points));
+            WriteAttributeString("style", style);
+            WriteEdgeRenderingModeAttribute(edgeRenderingMode);
+            WriteTitle();
+            WriteEndElement();
         }
 
         /// <summary>
@@ -320,11 +308,11 @@ namespace OxyPlot.Blazor
         public void WritePolyline(IEnumerable<ScreenPoint> pts, string style, EdgeRenderingMode edgeRenderingMode)
         {
             // http://www.w3.org/TR/SVG/shapes.html#PolylineElement
-            this.WriteStartElement("polyline");
-            this.WriteAttributeString("points", this.PointsToString(pts));
-            this.WriteAttributeString("style", style);
-            this.WriteEdgeRenderingModeAttribute(edgeRenderingMode);
-            this.WriteEndElement();
+            WriteStartElement("polyline");
+            WriteAttributeString("points", PointsToString(pts));
+            WriteAttributeString("style", style);
+            WriteEdgeRenderingModeAttribute(edgeRenderingMode);
+            WriteEndElement();
         }
 
         /// <summary>
@@ -338,15 +326,15 @@ namespace OxyPlot.Blazor
         public void WriteRectangle(double x, double y, double width, double height, string style, EdgeRenderingMode edgeRenderingMode)
         {
             // http://www.w3.org/TR/SVG/shapes.html#RectangleElement
-            this.WriteStartElement("rect");
-            this.WriteAttributeString("x", x);
-            this.WriteAttributeString("y", y);
-            this.WriteAttributeString("width", width);
-            this.WriteAttributeString("height", height);
-            this.WriteAttributeString("style", style);
-            this.WriteEdgeRenderingModeAttribute(edgeRenderingMode);
-            this.WriteTitle();
-            this.WriteEndElement();
+            WriteStartElement("rect");
+            WriteAttributeString("x", x);
+            WriteAttributeString("y", y);
+            WriteAttributeString("width", width);
+            WriteAttributeString("height", height);
+            WriteAttributeString("style", style);
+            WriteEdgeRenderingModeAttribute(edgeRenderingMode);
+            WriteTitle();
+            WriteEndElement();
         }
 
         /// <summary>
@@ -373,7 +361,7 @@ namespace OxyPlot.Blazor
             VerticalAlignment valign = VerticalAlignment.Top)
         {
             // http://www.w3.org/TR/SVG/text.html
-            this.WriteStartElement("text");
+            WriteStartElement("text");
 
             // WriteAttributeString("x", position.X);
             // WriteAttributeString("y", position.Y);
@@ -388,7 +376,7 @@ namespace OxyPlot.Blazor
                 baselineAlignment = "baseline";
             }
 
-            this.WriteAttributeString("dominant-baseline", baselineAlignment);
+            WriteAttributeString("dominant-baseline", baselineAlignment);
 
             string textAnchor = "start";
             if (halign == HorizontalAlignment.Center)
@@ -401,48 +389,48 @@ namespace OxyPlot.Blazor
                 textAnchor = "end";
             }
 
-            this.WriteAttributeString("text-anchor", textAnchor);
+            WriteAttributeString("text-anchor", textAnchor);
 
-            string fmt = "translate({0:" + this.NumberFormat + "},{1:" + this.NumberFormat + "})";
+            string fmt = "translate({0:" + NumberFormat + "},{1:" + NumberFormat + "})";
             string transform = string.Format(CultureInfo.InvariantCulture, fmt, position.X, position.Y);
             if (Math.Abs(rotate) > 0)
             {
                 transform += string.Format(CultureInfo.InvariantCulture, " rotate({0})", rotate);
             }
 
-            this.WriteAttributeString("transform", transform);
+            WriteAttributeString("transform", transform);
 
             if (fontFamily != null)
             {
-                this.WriteAttributeString("font-family", fontFamily);
+                WriteAttributeString("font-family", fontFamily);
             }
 
             if (fontSize > 0)
             {
-                this.WriteAttributeString("font-size", fontSize);
+                WriteAttributeString("font-size", fontSize);
             }
 
             if (fontWeight > 0)
             {
-                this.WriteAttributeString("font-weight", fontWeight);
+                WriteAttributeString("font-weight", fontWeight);
             }
 
             if (fill.IsInvisible())
             {
-                this.WriteAttributeString("fill", "none");
+                WriteAttributeString("fill", "none");
             }
             else
             {
-                this.WriteAttributeString("fill", this.ColorToString(fill));
+                WriteAttributeString("fill", ColorToString(fill));
                 if (fill.A != 0xFF)
                 {
-                    this.WriteAttributeString("fill-opacity", fill.A / 255.0);
+                    WriteAttributeString("fill-opacity", fill.A / 255.0);
                 }
             }
 
             // WriteAttributeString("style", style);
-            this.WriteString(text);
-            this.WriteEndElement();
+            WriteString(text);
+            WriteEndElement();
         }
 
         /// <summary>
@@ -457,7 +445,7 @@ namespace OxyPlot.Blazor
                 return "black";
             }
 
-            var formatString = "rgb({0:" + this.NumberFormat + "},{1:" + this.NumberFormat + "},{2:" + this.NumberFormat + "})";
+            var formatString = "rgb({0:" + NumberFormat + "},{1:" + NumberFormat + "},{2:" + NumberFormat + "})";
             return string.Format(formatString, color.R, color.G, color.B);
         }
 
@@ -466,30 +454,15 @@ namespace OxyPlot.Blazor
         /// </summary>
         /// <param name="name">The name.</param>
         /// <param name="value">The value.</param>
-        protected void WriteAttributeString(string name, double value)
-        {
-            _b.AddAttribute(SequenceNumber, name, value.ToString(this.NumberFormat, CultureInfo.InvariantCulture));
-        }
+        protected void WriteAttributeString(string name, double value) => _b.AddAttribute(SequenceNumber, name, value.ToString(NumberFormat, CultureInfo.InvariantCulture));
 
-        protected void WriteAttributeString(string prefix, string localName, string _1, string value)
-        {
-            _b.AddAttribute(SequenceNumber, prefix + ":" + localName, value);
-        }
+        protected void WriteAttributeString(string prefix, string localName, string _1, string value) => _b.AddAttribute(SequenceNumber, prefix + ":" + localName, value);
 
-        protected void WriteString(string value)
-        {
-            _b.AddMarkupContent(SequenceNumber, value);
-        }
+        protected void WriteString(string value) => _b.AddMarkupContent(SequenceNumber, value);
 
-        protected void WriteText(string value)
-        {
-            _b.AddContent(SequenceNumber, value);
-        }
+        protected void WriteText(string value) => _b.AddContent(SequenceNumber, value);
 
-        protected void WriteAttributeString(string name, string value)
-        {
-            _b.AddAttribute(SequenceNumber, name, value);
-        }
+        protected void WriteAttributeString(string name, string value) => _b.AddAttribute(SequenceNumber, name, value);
 
         /// <summary>
         /// Writes the edge rendering mode attribute if necessary.
@@ -515,15 +488,9 @@ namespace OxyPlot.Blazor
             WriteAttributeString("shape-rendering", value);
         }
 
-        protected void WriteStartElement(string name)
-        {
-            _b.OpenElement(SequenceNumber, name);
-        }
+        protected void WriteStartElement(string name) => _b.OpenElement(SequenceNumber, name);
 
-        protected void WriteEndElement()
-        {
-            _b.CloseElement();
-        }
+        protected void WriteEndElement() => _b.CloseElement();
 
         /// <summary>
         /// Converts a list of points to a string.
@@ -533,7 +500,7 @@ namespace OxyPlot.Blazor
         private string PointsToString(IEnumerable<ScreenPoint> points)
         {
             var sb = new StringBuilder();
-            string fmt = "{0:" + this.NumberFormat + "},{1:" + this.NumberFormat + "} ";
+            string fmt = "{0:" + NumberFormat + "},{1:" + NumberFormat + "} ";
             foreach (var p in points)
             {
                 if (double.IsFinite(p.X) && double.IsFinite(p.Y))
@@ -556,10 +523,7 @@ namespace OxyPlot.Blazor
         /// <param name="fill">The fill color.</param>
         /// <param name="stroke">The stroke color.</param>
         /// <param name="thickness">The thickness.</param>
-        public override void DrawEllipse(OxyRect rect, OxyColor fill, OxyColor stroke, double thickness, EdgeRenderingMode edgeRenderingMode)
-        {
-            this.WriteEllipse(rect.Left, rect.Top, rect.Width, rect.Height, this.CreateStyle(fill, stroke, thickness), edgeRenderingMode);
-        }
+        public override void DrawEllipse(OxyRect rect, OxyColor fill, OxyColor stroke, double thickness, EdgeRenderingMode edgeRenderingMode) => WriteEllipse(rect.Left, rect.Top, rect.Width, rect.Height, CreateStyle(fill, stroke, thickness), edgeRenderingMode);
 
         /// <summary>
         /// Draws the polyline from the specified points.
@@ -570,10 +534,7 @@ namespace OxyPlot.Blazor
         /// <param name="dashArray">The dash array.</param>
         /// <param name="lineJoin">The line join type.</param>
         /// <param name="aliased">if set to <c>true</c> the shape will be aliased.</param>
-        public override void DrawLine(IList<ScreenPoint> points, OxyColor stroke, double thickness, EdgeRenderingMode edgeRenderingMode, double[] dashArray, LineJoin lineJoin)
-        {
-            this.WritePolyline(points, this.CreateStyle(OxyColors.Undefined, stroke, thickness, dashArray, lineJoin), edgeRenderingMode);
-        }
+        public override void DrawLine(IList<ScreenPoint> points, OxyColor stroke, double thickness, EdgeRenderingMode edgeRenderingMode, double[] dashArray, LineJoin lineJoin) => WritePolyline(points, CreateStyle(OxyColors.Undefined, stroke, thickness, dashArray, lineJoin), edgeRenderingMode);
 
         /// <summary>
         /// Draws the polygon from the specified points. The polygon can have stroke and/or fill.
@@ -585,10 +546,7 @@ namespace OxyPlot.Blazor
         /// <param name="dashArray">The dash array.</param>
         /// <param name="lineJoin">The line join type.</param>
         /// <param name="aliased">if set to <c>true</c> the shape will be aliased.</param>
-        public override void DrawPolygon(IList<ScreenPoint> points, OxyColor fill, OxyColor stroke, double thickness, EdgeRenderingMode edgeRenderingMode, double[] dashArray, LineJoin lineJoin)
-        {
-            this.WritePolygon(points, this.CreateStyle(fill, stroke, thickness, dashArray, lineJoin), edgeRenderingMode);
-        }
+        public override void DrawPolygon(IList<ScreenPoint> points, OxyColor fill, OxyColor stroke, double thickness, EdgeRenderingMode edgeRenderingMode, double[] dashArray, LineJoin lineJoin) => WritePolygon(points, CreateStyle(fill, stroke, thickness, dashArray, lineJoin), edgeRenderingMode);
 
         /// <summary>
         /// Draws the rectangle.
@@ -597,10 +555,7 @@ namespace OxyPlot.Blazor
         /// <param name="fill">The fill color.</param>
         /// <param name="stroke">The stroke color.</param>
         /// <param name="thickness">The stroke thickness.</param>
-        public override void DrawRectangle(OxyRect rect, OxyColor fill, OxyColor stroke, double thickness, EdgeRenderingMode edgeRenderingMode)
-        {
-            this.WriteRectangle(rect.Left, rect.Top, rect.Width, rect.Height, this.CreateStyle(fill, stroke, thickness), edgeRenderingMode);
-        }
+        public override void DrawRectangle(OxyRect rect, OxyColor fill, OxyColor stroke, double thickness, EdgeRenderingMode edgeRenderingMode) => WriteRectangle(rect.Left, rect.Top, rect.Width, rect.Height, CreateStyle(fill, stroke, thickness), edgeRenderingMode);
 
         /// <summary>
         /// Draws the text.
@@ -634,11 +589,11 @@ namespace OxyPlot.Blazor
 
             var lines = Regex.Split(text, "\r\n");
 
-            var textSize = this.MeasureText(text, fontFamily, fontSize, fontWeight);
+            var textSize = MeasureText(text, fontFamily, fontSize, fontWeight);
             var lineHeight = textSize.Height / lines.Length;
             var lineOffset = new ScreenVector(-Math.Sin(rotate / 180.0 * Math.PI) * lineHeight, +Math.Cos(rotate / 180.0 * Math.PI) * lineHeight);
 
-            if (this.UseVerticalTextAlignmentWorkaround)
+            if (UseVerticalTextAlignmentWorkaround)
             {
                 // offset the position, and set the valign to neutral value of `Bottom`
                 double offsetRatio = valign == VerticalAlignment.Bottom ? (1.0 - lines.Length) : valign == VerticalAlignment.Top ? 1.0 : (1.0 - (lines.Length / 2.0));
@@ -648,8 +603,8 @@ namespace OxyPlot.Blazor
 
                 foreach (var line in lines)
                 {
-                    var size = this.MeasureText(line, fontFamily, fontSize, fontWeight);
-                    this.WriteText(p, line, c, fontFamily, fontSize, fontWeight, rotate, halign, valign);
+                    var size = MeasureText(line, fontFamily, fontSize, fontWeight);
+                    WriteText(p, line, c, fontFamily, fontSize, fontWeight, rotate, halign, valign);
 
                     p += lineOffset;
                 }
@@ -661,8 +616,8 @@ namespace OxyPlot.Blazor
                     for (var i = lines.Length - 1; i >= 0; i--)
                     {
                         var line = lines[i];
-                        _ = this.MeasureText(line, fontFamily, fontSize, fontWeight);
-                        this.WriteText(p, line, c, fontFamily, fontSize, fontWeight, rotate, halign, valign);
+                        _ = MeasureText(line, fontFamily, fontSize, fontWeight);
+                        WriteText(p, line, c, fontFamily, fontSize, fontWeight, rotate, halign, valign);
 
                         p -= lineOffset;
                     }
@@ -671,8 +626,8 @@ namespace OxyPlot.Blazor
                 {
                     foreach (var line in lines)
                     {
-                        var size = this.MeasureText(line, fontFamily, fontSize, fontWeight);
-                        this.WriteText(p, line, c, fontFamily, fontSize, fontWeight, rotate, halign, valign);
+                        var size = MeasureText(line, fontFamily, fontSize, fontWeight);
+                        WriteText(p, line, c, fontFamily, fontSize, fontWeight, rotate, halign, valign);
 
                         p += lineOffset;
                     }
@@ -695,7 +650,7 @@ namespace OxyPlot.Blazor
                 return OxySize.Empty;
             }
 
-            return this.TextMeasurer?.MeasureText(text, fontFamily, fontSize, fontWeight)??OxySize.Empty;
+            return TextMeasurer?.MeasureText(text, fontFamily, fontSize, fontWeight)??OxySize.Empty;
         }
 
         /// <summary>
@@ -723,9 +678,6 @@ namespace OxyPlot.Blazor
             double destWidth,
             double destHeight,
             double opacity,
-            bool interpolate)
-        {
-            this.WriteImage(srcX, srcY, srcWidth, srcHeight, destX, destY, destWidth, destHeight, source);
-        }
+            bool interpolate) => WriteImage(srcX, srcY, srcWidth, srcHeight, destX, destY, destWidth, destHeight, source);
     }
 }
