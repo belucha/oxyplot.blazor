@@ -1,6 +1,6 @@
 # OxyPlot.Blazor.BlazorPlotView Component
 
-![A sample from the examples library](https://raw.githubusercontent.com/belucha/oxyplot.blazor/master/demo.png)
+![A sample from the examples library](demo.png)
 
 ## Requirements
 

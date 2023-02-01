@@ -17,6 +17,16 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<None Include="..\README.MD">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\demo.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+	<ItemGroup>
 		<PackageReference Include="OxyPlot.Core" Version="2.1.*" />
 	</ItemGroup>
 </Project>
