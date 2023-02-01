@@ -525,6 +525,12 @@ namespace OxyPlot.Blazor
             {
                 _timer.Elapsed -= TimerExpired;
                 _timer.Dispose();
+                // detach model from view (closes #5)
+                if (_currentModel != null)
+                {
+                    ((IPlotModel)_currentModel).AttachPlotView(null);
+                    _currentModel = null;
+                }
                 GC.SuppressFinalize(this);
             }
             _disposed = true;

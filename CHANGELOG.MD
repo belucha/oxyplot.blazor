@@ -1,3 +1,5 @@
+- close #5 (unbind model from BlazorPlotView when disposing)
+
 ## 2023-01-09 v2.4.0
 
 - add: keyboard support
