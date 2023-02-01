@@ -33,6 +33,5 @@ var app = builder.Build();
 
 ## Known issues
 
-- No keyboard binding
 - Images anoations don't work yet (I do not understand that, they are just not visible)
 - Tracker is an extra `<div/>` - not pretty, only shown, when Parameter `TrackerEnabled` is set to true

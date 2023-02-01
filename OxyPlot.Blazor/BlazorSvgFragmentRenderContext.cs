@@ -96,7 +96,7 @@ namespace OxyPlot.Blazor
             else
             {
                 style.Append("fill:");
-                style.Append(ColorToString(fill));
+                style.Append(fill.FormatColor());
                 style.Append(';');
                 if (fill.A != 0xFF)
                 {
@@ -113,7 +113,7 @@ namespace OxyPlot.Blazor
             else
             {
                 style.Append("stroke:");
-                style.Append(ColorToString(stroke));
+                style.Append(stroke.FormatColor());
                 style.Append(";stroke-width:");
                 style.AppendInvariant(thickness, NumberFormat);
                 switch (lineJoin)
@@ -431,7 +431,7 @@ namespace OxyPlot.Blazor
             }
             else
             {
-                WriteAttributeString("fill", ColorToString(fill));
+                WriteAttributeString("fill", fill.FormatColor());
                 if (fill.A != 0xFF)
                 {
                     WriteAttributeString("fill-opacity", fill.A / 255.0);
@@ -441,20 +441,6 @@ namespace OxyPlot.Blazor
             // WriteAttributeString("style", style);
             WriteString(text);
             WriteEndElement();
-        }
-
-        /// <summary>
-        /// Converts a color to a svg color string.
-        /// </summary>
-        /// <param name="color">The color.</param>
-        /// <returns>The color string.</returns>
-        protected string ColorToString(OxyColor color)
-        {
-            if (color == OxyColors.Black)
-            {
-                return "black";
-            }
-            return FormattableString.Invariant($"rgb({color.R},{color.G},{color.B})");
         }
 
         /// <summary>

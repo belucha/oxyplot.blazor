@@ -1,11 +1,13 @@
-﻿using System.Drawing;
+﻿using System;
 using System.Text;
 
 namespace OxyPlot.Blazor
 {
     public static class StringBuilderExtensions
     {
-        public static StringBuilder AppendInvariant<T>(this StringBuilder builder, T value, string? format = default) where T: System.IFormattable
+        public static string FormatColor(this OxyColor color)
+            => FormattableString.Invariant($"rgb({color.R},{color.G},{color.B})");
+        public static StringBuilder AppendInvariant<T>(this StringBuilder builder, T value, string? format = default) where T : System.IFormattable
         {
             builder.Append(value.ToString(format, System.Globalization.CultureInfo.InvariantCulture));
             return builder;

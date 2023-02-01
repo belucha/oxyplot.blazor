@@ -34,11 +34,6 @@ namespace OxyPlot.Blazor
                 return new OxyRect(left: 0, top: 0, width: 500, height: 300);
             }
         }
-        public async ValueTask DisableContextMenu(ElementReference element)
-        {
-            var js = await _moduleTask.Value.ConfigureAwait(false);
-            await js.InvokeVoidAsync("disableContextMenu", element).ConfigureAwait(false);
-        }
         public async ValueTask SetCursor(ElementReference element, string cursorName)
         {
             var js = await _moduleTask.Value.ConfigureAwait(false);
