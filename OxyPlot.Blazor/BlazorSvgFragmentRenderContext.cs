@@ -12,12 +12,9 @@ namespace OxyPlot.Blazor
     using System;
     using System.Collections.Generic;
     using System.Globalization;
-    using System.IO;
+    using System.Linq;
     using System.Text;
     using Microsoft.AspNetCore.Components.Rendering;
-    using Microsoft.AspNetCore.Components.Web;
-    using Microsoft.AspNetCore.Components;
-    using System.Threading.Tasks;
     using System.Text.RegularExpressions;
 
     /// <summary>
@@ -91,41 +88,48 @@ namespace OxyPlot.Blazor
             LineJoin lineJoin = LineJoin.Miter)
         {
             // http://oreilly.com/catalog/svgess/chapter/ch03.html
-            var style = new StringBuilder();
+            var style = new StringBuilder(512);
             if (fill.IsInvisible())
             {
-                style.AppendFormat("fill:none;");
+                style.Append("fill:none;");
             }
             else
             {
-                style.AppendFormat("fill:{0};", ColorToString(fill));
+                style.Append("fill:");
+                style.Append(ColorToString(fill));
+                style.Append(';');
                 if (fill.A != 0xFF)
                 {
-                    style.AppendFormat(CultureInfo.InvariantCulture, "fill-opacity:{0};", fill.A / 255.0);
+                    style.Append("fill-opacity:");
+                    style.Append((fill.A / 255.0).ToString("0.00", CultureInfo.InvariantCulture));
+                    style.Append(';');
                 }
             }
 
             if (stroke.IsInvisible())
             {
-                style.AppendFormat("stroke:none;");
+                style.Append("stroke:none;");
             }
             else
             {
-                string formatString = "stroke:{0};stroke-width:{1:" + NumberFormat + "}";
-                style.AppendFormat(CultureInfo.InvariantCulture, formatString, ColorToString(stroke), thickness);
+                style.Append("stroke:");
+                style.Append(ColorToString(stroke));
+                style.Append(";stroke-width:");
+                style.AppendInvariant(thickness, NumberFormat);
                 switch (lineJoin)
                 {
                     case LineJoin.Round:
-                        style.AppendFormat(";stroke-linejoin:round");
+                        style.Append(";stroke-linejoin:round");
                         break;
                     case LineJoin.Bevel:
-                        style.AppendFormat(";stroke-linejoin:bevel");
+                        style.Append(";stroke-linejoin:bevel");
                         break;
                 }
 
                 if (stroke.A != 0xFF)
                 {
-                    style.AppendFormat(CultureInfo.InvariantCulture, ";stroke-opacity:{0}", stroke.A / 255.0);
+                    style.Append(";stroke-opacity:");
+                    style.AppendInvariant(stroke.A / 255.0, "0.00");
                 }
 
                 if (dashArray != null && dashArray.Length > 0)
@@ -133,12 +137,14 @@ namespace OxyPlot.Blazor
                     style.Append(";stroke-dasharray:");
                     for (int i = 0; i < dashArray.Length; i++)
                     {
-                        style.AppendFormat(
-                            CultureInfo.InvariantCulture, "{0}{1}", i > 0 ? "," : string.Empty, dashArray[i]);
+                        if (i > 0)
+                        {
+                            style.Append(',');
+                        }
+                        style.AppendInvariant(dashArray[i], NumberFormat);
                     }
                 }
             }
-
             return style.ToString();
         }
 
@@ -391,14 +397,18 @@ namespace OxyPlot.Blazor
 
             WriteAttributeString("text-anchor", textAnchor);
 
-            string fmt = "translate({0:" + NumberFormat + "},{1:" + NumberFormat + "})";
-            string transform = string.Format(CultureInfo.InvariantCulture, fmt, position.X, position.Y);
+            var transform = new StringBuilder(128);
+            transform.Append("translate(");
+            transform.AppendInvariant(position, NumberFormat);
+            transform.Append(')');
             if (Math.Abs(rotate) > 0)
             {
-                transform += string.Format(CultureInfo.InvariantCulture, " rotate({0})", rotate);
+                transform.Append(" rotate(");
+                transform.AppendInvariant(rotate, "0.##");
+                transform.Append(')');
             }
 
-            WriteAttributeString("transform", transform);
+            WriteAttributeString("transform", transform.ToString());
 
             if (fontFamily != null)
             {
@@ -440,13 +450,11 @@ namespace OxyPlot.Blazor
         /// <returns>The color string.</returns>
         protected string ColorToString(OxyColor color)
         {
-            if (color.Equals(OxyColors.Black))
+            if (color == OxyColors.Black)
             {
                 return "black";
             }
-
-            var formatString = "rgb({0:" + NumberFormat + "},{1:" + NumberFormat + "},{2:" + NumberFormat + "})";
-            return string.Format(formatString, color.R, color.G, color.B);
+            return FormattableString.Invariant($"rgb({color.R},{color.G},{color.B})");
         }
 
         /// <summary>
@@ -499,16 +507,18 @@ namespace OxyPlot.Blazor
         /// <returns>A string.</returns>
         private string PointsToString(IEnumerable<ScreenPoint> points)
         {
-            var sb = new StringBuilder();
-            string fmt = "{0:" + NumberFormat + "},{1:" + NumberFormat + "} ";
+            var sb = new StringBuilder((points.TryGetNonEnumeratedCount(out var c) ? c : 20) * (6 + 6 + 2));
             foreach (var p in points)
             {
                 if (double.IsFinite(p.X) && double.IsFinite(p.Y))
                 {
-                    sb.AppendFormat(CultureInfo.InvariantCulture, fmt, p.X, p.Y);
+                    sb.Append(p.X.ToString(NumberFormat, CultureInfo.InvariantCulture));
+                    sb.Append(',');
+                    sb.Append(p.Y.ToString(NumberFormat, CultureInfo.InvariantCulture));
+                    sb.Append(' ');
                 }
             }
-            return sb.ToString().Trim();
+            return sb.ToString();
         }
 
         /// <summary>
@@ -650,7 +660,7 @@ namespace OxyPlot.Blazor
                 return OxySize.Empty;
             }
 
-            return TextMeasurer?.MeasureText(text, fontFamily, fontSize, fontWeight)??OxySize.Empty;
+            return TextMeasurer?.MeasureText(text, fontFamily, fontSize, fontWeight) ?? OxySize.Empty;
         }
 
         /// <summary>

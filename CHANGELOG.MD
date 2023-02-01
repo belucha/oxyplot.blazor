@@ -1,3 +1,6 @@
+## 2023-02-01 v2.5.0
+
+- optimize performance critical calls to StringBuilder, (avoids boxing)
 - close #5 (unbind model from BlazorPlotView when disposing)
 
 ## 2023-01-09 v2.4.0

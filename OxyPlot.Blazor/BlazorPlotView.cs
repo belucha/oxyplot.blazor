@@ -1,14 +1,11 @@
 ﻿#nullable disable
 using System;
+using System.Linq;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.AspNetCore.Components.Web;
 using System.Timers;
 using System.ComponentModel.DataAnnotations;
-using Microsoft.Extensions.Logging;
-using System.Xml.Linq;
-using OxyPlot.Series;
-using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace OxyPlot.Blazor
