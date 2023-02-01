@@ -1,17 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="OxyPlot.Core" Version="2.1.*" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="OxyPlot.Core" Version="2.1.*" />
+		<PackageReference Include="OxyPlot.ExampleLibrary" Version="2.1.*" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\OxyPlot.Blazor\OxyPlot.Blazor.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\OxyPlot.Blazor\OxyPlot.Blazor.csproj" />
+	</ItemGroup>
 
 </Project>

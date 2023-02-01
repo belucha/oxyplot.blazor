@@ -154,7 +154,7 @@ namespace OxyPlot.Blazor
         public void ShowTracker(TrackerHitResult data)
         {
             _tracker = data;
-            StateHasChanged();
+            InvokeAsync(StateHasChanged);
         }
 
         /// <summary>
@@ -163,7 +163,7 @@ namespace OxyPlot.Blazor
         public void HideTracker()
         {
             _tracker = null;
-            StateHasChanged();
+            InvokeAsync(StateHasChanged);
         }
 
         /// <summary>
@@ -172,7 +172,7 @@ namespace OxyPlot.Blazor
         public void HideZoomRectangle()
         {
             _zoomRectangle = OxyRect.Create(0, 0, 0, 0);
-            StateHasChanged();
+            InvokeAsync(StateHasChanged);
         }
 
         /// <summary>
@@ -182,7 +182,7 @@ namespace OxyPlot.Blazor
         public void InvalidatePlot(bool updateData)
         {
             _updateDataFlag |= updateData;
-            StateHasChanged();
+            InvokeAsync(StateHasChanged);
         }
 
         /// <summary>

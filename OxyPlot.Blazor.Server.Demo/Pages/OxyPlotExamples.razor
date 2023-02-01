@@ -1,0 +1,25 @@
+﻿@page "/OxyPlotExamples"
+@inject ExampleService ExampleService
+@using OxyPlot
+@using ExampleLibrary
+<h3>OxyPlot Examples</h3>
+<ul>
+    @foreach (var cat in ExampleService.Values.GroupBy(e => e.Example.Category))
+    {
+        <li>
+            @cat.Key
+            <ul>
+                @foreach (var e in cat.OrderBy(k => k.Example.Title))
+                {
+                    <li><a href=@($"/OxyPlotExample/{e.Index}")>@e.Example.Title</a></li>
+                }
+            </ul>
+        </li>
+    }
+</ul>
+@code {
+    [Parameter] public int? Id { get; set; }
+    ExampleInfo? _exampleInfo;
+    PlotController _c = new();
+    protected override void OnParametersSet() => _exampleInfo = Id.HasValue ? ExampleService[Id.Value] : null;
+}

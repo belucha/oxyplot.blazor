@@ -1,0 +1,27 @@
+﻿@page "/OxyPlotExample/{Id:int}"
+@inject ExampleService ExampleService
+@using OxyPlot
+@using ExampleLibrary
+@if (_exampleInfo != null)
+{
+    <h2>
+        <a href="/OxyPlotExamples"><span class="oi oi-home" aria-hidden="true"></span></a>
+        <a class="px-2" href=@($"/OxyPlotExampleCode/{Id}")>Code</a>
+        @if (Id > 0)
+        {
+            <a class="px-2" href=@($"/OxyPlotExample/{Id-1}")> &lt; </a>
+        }
+        @if ((Id + 1) < ExampleService.Values.Count)
+        {
+            <a class="px-2" href=@($"/OxyPlotExample/{Id+1}")>&gt; </a>
+        }
+    </h2>
+    <h4>@_exampleInfo.Title</h4>
+    <h6>@string.Join(", ", _exampleInfo.Tags)</h6>
+    <BlazorPlotView Width="100%" Height="70vh" Model="_exampleInfo.PlotModel" Controller=@_exampleInfo.PlotController />
+}
+@code {
+    [Parameter] public int? Id { get; set; }
+    ExampleInfo? _exampleInfo;
+    protected override void OnParametersSet() => _exampleInfo = Id.HasValue ? ExampleService[Id.Value] : null;
+}
