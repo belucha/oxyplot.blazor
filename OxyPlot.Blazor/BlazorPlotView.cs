@@ -29,6 +29,7 @@ namespace OxyPlot.Blazor
         [Parameter] public string Height { get; set; }
         [Parameter] public string Class { get; set; }
         [Parameter] public string Style { get; set; }
+        [Parameter] public bool ReverseMouseWheel { get; set; }
         /// <summary>
         /// Set to -1 to disable keyboard binding
         /// </summary>
@@ -419,13 +420,16 @@ namespace OxyPlot.Blazor
                 ClickCount = (int)e.Detail,
                 ModifierKeys = TranslateModifierKeys(e),
             };
-        private static OxyMouseWheelEventArgs TranslateWheelEventArgs(WheelEventArgs e)
-            => new()
+        private OxyMouseWheelEventArgs TranslateWheelEventArgs(WheelEventArgs e)
+        {
+            var delta = (int)(e.DeltaY != 0 ? e.DeltaY : e.DeltaX);
+            return new()
             {
                 Position = new ScreenPoint(e.OffsetX, e.OffsetY),
-                Delta = (int)(e.DeltaY != 0 ? e.DeltaY : e.DeltaX),
+                Delta = ReverseMouseWheel ? -delta : delta,
                 ModifierKeys = TranslateModifierKeys(e),
             };
+        }
 
         static OxyKey ParseKey(string key)
         {

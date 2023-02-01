@@ -6,7 +6,7 @@
 @using OxyPlot.Blazor
 <h3>Blazored Oxy Plot Test</h3>
 <BlazorPlotView @ref=@_view1 Width="100%" Height="300px" Model="_model1" Controller=@_c />
-<BlazorPlotView Width="100%" Height="300px" Model="_model2" />
+<BlazorPlotView Width="100%" Height="300px" Model="_model2" ReverseMouseWheel=true />
 
 @code {
     System.Timers.Timer _update = new System.Timers.Timer(1000);
