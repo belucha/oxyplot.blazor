@@ -88,7 +88,7 @@ namespace OxyPlot.Blazor
             }
         }
 
-        public ValueTask FocusAsync() => _svg.Id!=null?_svg.FocusAsync():ValueTask.CompletedTask;
+        public ValueTask FocusAsync() => _svg.Id != null ? _svg.FocusAsync() : ValueTask.CompletedTask;
         async void UpdateSvgBoundingRect()
         {
             if (_svg.Id == null || _disposed)
@@ -234,11 +234,17 @@ namespace OxyPlot.Blazor
             }
         }
 
-        void AddEventCallback<T>(RenderTreeBuilder builder, int sequence, string name, Action<T> callback)
+        void AddEventCallback<T>(RenderTreeBuilder builder, int sequence, string name, Action<T> callback, bool preventDefault=true, bool stopPropagtion=true, bool addAlways = true )
         {
             builder.AddAttribute(sequence, name, EventCallback.Factory.Create<T>(this, callback));
-            builder.AddEventPreventDefaultAttribute(sequence, name, true);
-            builder.AddEventStopPropagationAttribute(sequence, name, true);
+            if (preventDefault || addAlways)
+            {
+                builder.AddEventPreventDefaultAttribute(sequence, name, preventDefault);
+            }
+            if (stopPropagtion || addAlways)
+            {
+                builder.AddEventStopPropagationAttribute(sequence, name, stopPropagtion);
+            }
         }
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
@@ -285,10 +291,8 @@ namespace OxyPlot.Blazor
                 AddEventCallback<MouseEventArgs>(builder, 10, "onmousemove", e => ActualController.HandleMouseMove(this, TranslateMouseEventArgs(e)));
                 AddEventCallback<MouseEventArgs>(builder, 11, "onmouseenter", e => ActualController.HandleMouseEnter(this, TranslateMouseEventArgs(e)));
                 AddEventCallback<MouseEventArgs>(builder, 12, "onmouseleave", e => ActualController.HandleMouseEnter(this, TranslateMouseEventArgs(e)));
-                AddEventCallback<WheelEventArgs>(builder, 13, "onmousewheel", e => ActualController.HandleMouseWheel(this, TranslateWheelEventArgs(e)));
-                // don't prevent default for onkeydown
-                builder.AddAttribute(14, "onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, HandleKeyDownEvent));
-                builder.AddEventPreventDefaultAttribute(15, "onkeydown", _preventKey);
+                AddEventCallback<WheelEventArgs>(builder, 13, "onmousewheel", e => ActualController.HandleMouseWheel(this, TranslateWheelEventArgs(e)), preventDefault: false);
+                AddEventCallback<KeyboardEventArgs>(builder, 14, "onkeydown", HandleKeyDownEvent, preventDefault: _preventKey, addAlways: true);
             }
             builder.AddAttribute(15, "class", Class);
             builder.AddAttribute(16, "style", Style);

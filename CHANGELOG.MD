@@ -1,5 +1,6 @@
 ## 2023-02-01 v2.5.0
 
+- fix some browser console warnings about invalid preventDefault binding
 - OxyPlot ExampleLibrary Browser included in demo project
 - close #8 by adding a new parameter ReverseMouseWheel to BlazorPlotView (defaults to true)
 - optimize performance critical calls to StringBuilder, (avoids boxing)
