@@ -10,6 +10,7 @@
 		<PackageId>OxyPlot.Blazor</PackageId>
 		<IsPackable>true</IsPackable>
 		<PackageTags>Chart,Web,Blazor,Oxyplot</PackageTags>
+		<PackageReadmeFile>README.MD</PackageReadmeFile>
 		<Version></Version>
 		<Nullable>enable</Nullable>
 		<OutputType>Library</OutputType>
@@ -18,9 +19,4 @@
 	<ItemGroup>
 		<PackageReference Include="OxyPlot.Core" Version="2.1.*" />
 	</ItemGroup>
-	<ItemGroup>
-		<None Include="../README.MD" Pack="true" />
-		<None Include="../demo.png" Pack="true"/>
-	</ItemGroup>
-
 </Project>
