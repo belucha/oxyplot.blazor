@@ -1,3 +1,7 @@
+## 2023-02-21 v2.5.2
+
+- use ResizeObserver instaed of Timer for size observation (copied from MudBlazor)
+
 ## 2023-02-01 v2.5.0
 
 - fix some browser console warnings about invalid preventDefault binding
