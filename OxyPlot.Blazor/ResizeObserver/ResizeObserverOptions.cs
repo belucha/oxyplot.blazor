@@ -1,4 +1,4 @@
-﻿namespace MudBlazor.Services
+﻿namespace OxyPlot.Blazor.Services
 {
     public class ResizeObserverOptions
     {

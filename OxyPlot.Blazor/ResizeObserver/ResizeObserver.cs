@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
-using MudBlazor.Interop;
+using OxyPlot.Blazor.Interop;
 
-namespace MudBlazor.Services
+namespace OxyPlot.Blazor.Services
 {
     public class ResizeObserver : IResizeObserver, IDisposable, IAsyncDisposable
     {

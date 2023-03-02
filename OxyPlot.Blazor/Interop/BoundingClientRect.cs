@@ -1,5 +1,5 @@
 ﻿using OxyPlot;
-namespace MudBlazor.Interop;
+namespace OxyPlot.Blazor.Interop;
 
 public class BoundingClientRect
 {

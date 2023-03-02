@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 
-namespace MudBlazor.Services
+namespace OxyPlot.Blazor.Services
 {
     public class ResizeObserverFactory : IResizeObserverFactory
     {

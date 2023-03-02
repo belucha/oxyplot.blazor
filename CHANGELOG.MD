@@ -1,3 +1,7 @@
+## 2023-03-02 v2.5.3
+
+- change ResizeObserver namespace to allow the use of options
+
 ## 2023-02-21 v2.5.2
 
 - use ResizeObserver instaed of Timer for size observation (copied from MudBlazor)

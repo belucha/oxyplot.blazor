@@ -34,11 +34,11 @@ class MudResizeObserver {
         var observervedElements = [];
         this._observervedElements = observervedElements;
 
-        this.logger('[MudBlazor | ResizeObserver] Observer initialized');
+        this.logger('[OxyPlot.Blazor| ResizeObserver] Observer initialized');
 
         this._resizeObserver = new ResizeObserver(entries => {
             var changes = [];
-            this.logger('[MudBlazor | ResizeObserver] changes detected');
+            this.logger('[OxyPlot.Blazor| ResizeObserver] changes detected');
             for (let entry of entries) {
                 var target = entry.target;
                 var affectedObservedElement = observervedElements.find((x) => x.element == target);
@@ -68,16 +68,16 @@ class MudResizeObserver {
 
     resizeHandler(changes) {
         try {
-            this.logger("[MudBlazor | ResizeObserver] OnSizeChanged handler invoked");
+            this.logger("[OxyPlot.Blazor| ResizeObserver] OnSizeChanged handler invoked");
             this._dotNetRef.invokeMethodAsync("OnSizeChanged", changes);
         } catch (error) {
-            this.logger("[MudBlazor | ResizeObserver] Error in OnSizeChanged handler:", { error });
+            this.logger("[OxyPlot.Blazor| ResizeObserver] Error in OnSizeChanged handler:", { error });
         }
     }
 
     connect(elements, ids) {
         var result = [];
-        this.logger('[MudBlazor | ResizeObserver] Start observing elements...');
+        this.logger('[OxyPlot.Blazor| ResizeObserver] Start observing elements...');
 
         for (var i = 0; i < elements.length; i++) {
             var newEntry = {
@@ -86,7 +86,7 @@ class MudResizeObserver {
                 isInitialized: false,
             };
 
-            this.logger("[MudBlazor | ResizeObserver] Start observing element:", { newEntry });
+            this.logger("[OxyPlot.Blazor| ResizeObserver] Start observing element:", { newEntry });
 
             result.push(elements[i].getBoundingClientRect());
 
@@ -98,14 +98,14 @@ class MudResizeObserver {
     }
 
     disconnect(elementId) {
-        this.logger('[MudBlazor | ResizeObserver] Try to unobserve element with id', { elementId });
+        this.logger('[OxyPlot.Blazor| ResizeObserver] Try to unobserve element with id', { elementId });
 
         var affectedObservedElement = this._observervedElements.find((x) => x.id == elementId);
         if (affectedObservedElement) {
 
             var element = affectedObservedElement.element;
             this._resizeObserver.unobserve(element);
-            this.logger('[MudBlazor | ResizeObserver] Element found. Ubobserving size changes of element', { element });
+            this.logger('[OxyPlot.Blazor| ResizeObserver] Element found. Ubobserving size changes of element', { element });
 
             var index = this._observervedElements.indexOf(affectedObservedElement);
             this._observervedElements.splice(index, 1);
@@ -113,7 +113,7 @@ class MudResizeObserver {
     }
 
     cancelListener() {
-        this.logger('[MudBlazor | ResizeObserver] Closing ResizeObserver. Detaching all observed elements');
+        this.logger('[OxyPlot.Blazor| ResizeObserver] Closing ResizeObserver. Detaching all observed elements');
 
         this._resizeObserver.disconnect();
         this._dotNetRef = undefined;

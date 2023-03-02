@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
-using MudBlazor.Interop;
+using OxyPlot.Blazor.Interop;
 
-namespace MudBlazor.Services
+namespace OxyPlot.Blazor.Services
 {
 
     public delegate void SizeChanged(IDictionary<ElementReference, BoundingClientRect> changes);

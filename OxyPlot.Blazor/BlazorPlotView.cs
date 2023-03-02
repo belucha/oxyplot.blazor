@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.AspNetCore.Components.Web;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
-using MudBlazor.Services;
-using MudBlazor.Interop;
+using OxyPlot.Blazor.Services;
+using OxyPlot.Blazor.Interop;
 
 namespace OxyPlot.Blazor;
 

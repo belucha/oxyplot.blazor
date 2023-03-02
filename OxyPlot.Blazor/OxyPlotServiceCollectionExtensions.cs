@@ -1,4 +1,5 @@
-﻿using System;
+﻿using OxyPlot.Blazor.Services;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,7 +17,7 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddOxyPlotBlazor(this IServiceCollection serviceDescriptors)
         {
             ArgumentNullException.ThrowIfNull(serviceDescriptors);
-            serviceDescriptors.AddScoped<MudBlazor.Services.IResizeObserverFactory>((services) => new MudBlazor.Services.ResizeObserverFactory(services));
+            serviceDescriptors.AddScoped<IResizeObserverFactory>((services) => new ResizeObserverFactory(services));
             return serviceDescriptors;
         }
     }
