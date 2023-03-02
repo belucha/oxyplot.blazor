@@ -1,3 +1,7 @@
+## 2023-03-02 v2.5.4
+
+- change ResizeObserver, don't suprees first OnSizeChanged event
+
 ## 2023-03-02 v2.5.3
 
 - change ResizeObserver namespace to allow the use of options

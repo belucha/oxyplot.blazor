@@ -45,13 +45,7 @@ class MudResizeObserver {
                 if (affectedObservedElement) {
 
                     var size = entry.target.getBoundingClientRect();
-                    if (affectedObservedElement.isInitialized == true) {
-
-                        changes.push({ id: affectedObservedElement.id, size: size });
-                    }
-                    else {
-                        affectedObservedElement.isInitialized = true;
-                    }
+                    changes.push({ id: affectedObservedElement.id, size: size });
                 }
             }
 
