@@ -1,0 +1,62 @@
+﻿@using OxyPlot
+@using OxyPlot.Axes
+@using OxyPlot.Series
+@using OxyPlot.Blazor
+<MudDialog>
+    <DialogContent>
+        <BlazorPlotView Width="80vw" Height="600px" Model="BarSeries()" ReverseMouseWheel=true />
+    </DialogContent>
+</MudDialog>
+@code {
+    public static PlotModel BarSeries()
+    {
+        var model = new PlotModel
+            {
+                Title = "Cake Type Popularity",
+                Subtitle = "Use 'I' and 'O' Keys to zoom, 'F1' resets zoom!",
+            };
+        //generate a random percentage distribution between the 5
+        //cake-types (see axis below)
+        var rand = new Random();
+        double[] cakePopularity = new double[5];
+        for (int i = 0; i < 5; ++i)
+        {
+            cakePopularity[i] = rand.NextDouble();
+        }
+        var sum = cakePopularity.Sum();
+
+        model.Axes.Add(new LinearAxis { Key = "Value", Position = AxisPosition.Left, });
+        var barSeries = new BarSeries
+            {
+                XAxisKey = "Value",
+                YAxisKey = "CakeAxis",
+                ItemsSource = new List<BarItem>(new[]
+                                    {
+                new BarItem{ Value = (cakePopularity[0] / sum * 100) },
+                new BarItem{ Value = (cakePopularity[1] / sum * 100) },
+                new BarItem{ Value = (cakePopularity[2] / sum * 100) },
+                new BarItem{ Value = (cakePopularity[3] / sum * 100) },
+                new BarItem{ Value = (cakePopularity[4] / sum * 100) }
+            }),
+                LabelPlacement = LabelPlacement.Inside,
+                LabelFormatString = "{0:.00}%",
+                TrackerFormatString = "Hello {0} {1}",
+                //TrackerKey = "x",
+            };
+        model.Series.Add(barSeries);
+        model.Axes.Add(new CategoryAxis
+            {
+                Position = AxisPosition.Bottom,
+                Key = "CakeAxis",
+                ItemsSource = new[] {
+                    "Apple cake",
+                    "Baumkuchen",
+                    "Bundt Cake",
+                    "Chocolate cake",
+                    "Carrot cake"
+                    }
+            });
+
+        return model;
+    }
+}
