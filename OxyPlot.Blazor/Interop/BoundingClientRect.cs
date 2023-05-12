@@ -1,9 +1,10 @@
-﻿using OxyPlot;
+﻿using System;
 namespace OxyPlot.Blazor.Interop;
 
 public class BoundingClientRect
 {
     public static BoundingClientRect Empty = new BoundingClientRect();
+    public override string ToString() => FormattableString.Invariant($"(x:{X:F1},y:{Y:F1},w:{Width:F1},h:{Height:F1})");
     public OxyRect ToOxyRect() => new OxyRect(Left, Top, Width, Height);
     public double Top { get; set; }
     public double Left { get; set; }
