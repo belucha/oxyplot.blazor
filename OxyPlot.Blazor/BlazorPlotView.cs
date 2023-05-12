@@ -249,8 +249,8 @@ public class BlazorPlotView : ComponentBase, IPlotView, IDisposable, IAsyncDispo
         }
         // if the svg size is specified in pixels, we can start rendering right now
         if (_svgPos.Width == 0 && _svgPos.Height == 0
-            && Width != null && Width.EndsWith("px") && int.TryParse(Width[..^-2], out var wpx) && wpx > 0
-            && Height != null && Width.EndsWith("px") && int.TryParse(Height[..^-2], out var hpx) && hpx > 0)
+            && Width != null && Width.EndsWith("px") && int.TryParse(Width[..^2], out var wpx) && wpx > 0
+            && Height != null && Width.EndsWith("px") && int.TryParse(Height[..^2], out var hpx) && hpx > 0)
         {
             _svgPos = new OxyRect(0, 0, wpx, hpx);
         }
