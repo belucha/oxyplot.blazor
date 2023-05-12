@@ -11,7 +11,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddSingleton<WeatherForecastService>();
 builder.Services.AddMudServices();
-builder.Services.Configure<ResizeObserverOptions>(builder.Configuration.GetSection("ResizeObserverOptions"));
+builder.Services.AddOptions<ResizeObserverOptions>().Configure(o=>o.EnableLogging=true);
 builder.Services.AddOxyPlotBlazor();
 
 var app = builder.Build();

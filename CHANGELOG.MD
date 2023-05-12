@@ -1,3 +1,9 @@
+## 2023-05-12 v2.5.5
+
+- fix: wrong scaling after Plot in animation (e.g. dialog popup)
+   * change ResizeObserver to use the `contentRect` supplied 
+     from the observer instead of calling getBoundingClientRect()
+
 ## 2023-03-02 v2.5.4
 
 - change ResizeObserver, don't suprees first OnSizeChanged event

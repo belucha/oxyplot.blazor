@@ -43,9 +43,9 @@ class MudResizeObserver {
                 var target = entry.target;
                 var affectedObservedElement = observervedElements.find((x) => x.element == target);
                 if (affectedObservedElement) {
-
-                    var size = entry.target.getBoundingClientRect();
-                    changes.push({ id: affectedObservedElement.id, size: size });
+                    // don't use getBoundingClientRect(), because during animations this might fail
+                    //var size = entry.target.getBoundingClientRect();
+                    changes.push({ id: affectedObservedElement.id, size: entry.contentRect });
                 }
             }
 
@@ -77,15 +77,13 @@ class MudResizeObserver {
             var newEntry = {
                 element: elements[i],
                 id: ids[i],
-                isInitialized: false,
             };
-
+           
             this.logger("[OxyPlot.Blazor| ResizeObserver] Start observing element:", { newEntry });
-
-            result.push(elements[i].getBoundingClientRect());
 
             this._observervedElements.push(newEntry);
             this._resizeObserver.observe(elements[i]);
+            result.push(elements[i].getBoundingClientRect());
         }
 
         return result;
