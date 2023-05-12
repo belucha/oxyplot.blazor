@@ -98,11 +98,11 @@ namespace OxyPlot.Blazor.Services
             Dictionary<ElementReference, BoundingClientRect> parsedChanges = new();
             foreach (var item in changes)
             {
-                if (_cachedValueIds.ContainsKey(item.Id) == false) { continue; }
-
-                var elementRef = _cachedValueIds[item.Id];
-                _cachedValues[elementRef] = item.Size;
-                parsedChanges.Add(elementRef, item.Size);
+                if (_cachedValueIds.TryGetValue(item.Id, out var elementRef)) 
+                {
+                    _cachedValues[elementRef] = item.Size;
+                    parsedChanges.Add(elementRef, item.Size);
+                }
             }
 
             OnResized?.Invoke(parsedChanges);
