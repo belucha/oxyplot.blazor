@@ -8,6 +8,8 @@
 
 ## Usage
 
+nuget package at https://www.nuget.org/packages/OxyPlot.Blazor/
+
 Add Package Reference to OxyPlot.Core
 Add `OxyPlot.Blazor` library
 

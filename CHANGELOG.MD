@@ -1,3 +1,5 @@
+## 2023-05-15 v2.5.6
+
 - fix: svg clip-path ids and thus urls where not unique when multiple BlazorPlotView
   where used on a page. this update uses guids to make them unique.
 
