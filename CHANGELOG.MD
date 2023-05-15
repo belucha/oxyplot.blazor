@@ -1,3 +1,6 @@
+- fix: svg clip-path ids and thus urls where not unique when multiple BlazorPlotView
+  where used on a page. this update uses guids to make them unique.
+
 ## 2023-05-12 v2.5.5
 
 - fix: wrong scaling after Plot in animation (e.g. dialog popup)

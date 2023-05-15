@@ -27,11 +27,6 @@ namespace OxyPlot.Blazor
         /// </summary>
         private string? title;
 
-        /// <summary>
-        /// The clip path number
-        /// </summary>
-        private int clipPathNumber = 1;
-
         private readonly RenderTreeBuilder _b;
         public int SequenceNumber { get; set; }
 
@@ -186,8 +181,8 @@ namespace OxyPlot.Blazor
             // http://www.w3.org/TR/SVG/masking.html
             // https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath
             // http://www.svgbasics.com/clipping.html
-            var clipPath = $"clipPath{clipPathNumber++}";
-
+            // WARNING the clip path id must be unique in the document, not just within this svg fragment!
+            var clipPath = $"_{Guid.NewGuid()}";
             WriteStartElement("defs");
             WriteStartElement("clipPath");
             WriteAttributeString("id", clipPath);
