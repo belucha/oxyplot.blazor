@@ -26,6 +26,11 @@ namespace OxyPlot.Blazor
         /// Tooltip(title) for next svg element
         /// </summary>
         private string? title;
+        /// <summary>
+        /// unique id
+        /// </summary>
+        private readonly string _id;
+        int _clipPathNr;
 
         private readonly RenderTreeBuilder _b;
         public int SequenceNumber { get; set; }
@@ -52,10 +57,10 @@ namespace OxyPlot.Blazor
         /// Initializes a new instance of the <see cref="SvgWriter" /> class.
         /// </summary>
         /// <param name="renderTreeBuilder">The render tree builder.</param>
-        public BlazorSvgFragmentRenderContext(RenderTreeBuilder renderTreeBuilder)
+        public BlazorSvgFragmentRenderContext(RenderTreeBuilder renderTreeBuilder, string id)
         {
+            _id = id;
             _b = renderTreeBuilder ?? throw new ArgumentNullException(nameof(renderTreeBuilder));
-            NumberFormat = "0.####";
             RendersToScreen = true;
         }
         public IRenderContext? TextMeasurer { get; set; }
@@ -64,7 +69,7 @@ namespace OxyPlot.Blazor
         /// Gets or sets the number format.
         /// </summary>
         /// <value>The number format.</value>
-        public string NumberFormat { get; set; }
+        public string? NumberFormat { get; set; }
 
         /// <summary>
         /// Creates a style.
@@ -178,11 +183,13 @@ namespace OxyPlot.Blazor
         /// <param name="height">The height of the clipping rectangle.</param>
         public void BeginClip(double x, double y, double width, double height)
         {
+            _clipPathNr++;
             // http://www.w3.org/TR/SVG/masking.html
             // https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath
             // http://www.svgbasics.com/clipping.html
             // WARNING the clip path id must be unique in the document, not just within this svg fragment!
-            var clipPath = $"_{Guid.NewGuid()}";
+            // so we use an incrementing clip path number and an unique id provided by the plotview
+            var clipPath = $"c-{_clipPathNr}-{_id}";
             WriteStartElement("defs");
             WriteStartElement("clipPath");
             WriteAttributeString("id", clipPath);
@@ -194,7 +201,6 @@ namespace OxyPlot.Blazor
             WriteEndElement(); // rect
             WriteEndElement(); // clipPath
             WriteEndElement(); // defs
-
             WriteStartElement("g");
             WriteAttributeString("clip-path", $"url(#{clipPath})");
         }

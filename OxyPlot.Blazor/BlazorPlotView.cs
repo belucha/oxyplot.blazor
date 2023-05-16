@@ -30,6 +30,7 @@ public class BlazorPlotView : ComponentBase, IPlotView, IDisposable, IAsyncDispo
     [Parameter] public string Height { get; set; }
     [Parameter] public string Class { get; set; }
     [Parameter] public string Style { get; set; }
+    [Parameter] public string NumberFormat { get; set; } = "0.##";
     [Parameter] public bool ReverseMouseWheel { get; set; }
     /// <summary>
     /// Set to -1 to disable keyboard binding
@@ -281,9 +282,10 @@ public class BlazorPlotView : ComponentBase, IPlotView, IDisposable, IAsyncDispo
         });
         if (_svgPos.Width > 0 && _currentModel is IPlotModel plotModel)
         {
-            var renderer = new BlazorSvgFragmentRenderContext(builder)
+            var renderer = new BlazorSvgFragmentRenderContext(builder, _svg.Id)
             {
                 TextMeasurer = new PdfRenderContext(_svgPos.Width, _svgPos.Height, plotModel.Background),
+                NumberFormat = NumberFormat,
             };
 
             plotModel.Update(_updateDataFlag);

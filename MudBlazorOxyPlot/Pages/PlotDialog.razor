@@ -2,18 +2,24 @@
 @using OxyPlot.Axes
 @using OxyPlot.Series
 @using OxyPlot.Blazor
+@implements IDisposable
 <MudDialog>
     <DialogContent>
-        <BlazorPlotView Width="80vw" Height="600px" Model="BarSeries()" ReverseMouseWheel=true />
+        <BlazorPlotView Width="80vw" Height="60vh" Model="_model" ReverseMouseWheel=true />
     </DialogContent>
 </MudDialog>
 @code {
-    public static PlotModel BarSeries()
+    readonly List<BarItem> _bars = new List<BarItem>();
+    Timer? _timer;
+    PlotModel? _model;
+    void IDisposable.Dispose() => _timer?.Dispose();
+
+    protected override void OnInitialized()
     {
-        var model = new PlotModel
+        _timer = new Timer(Timeout, null, 500, 500);
+        _model = new PlotModel
             {
                 Title = "Cake Type Popularity",
-                Subtitle = "Use 'I' and 'O' Keys to zoom, 'F1' resets zoom!",
             };
         //generate a random percentage distribution between the 5
         //cake-types (see axis below)
@@ -24,27 +30,30 @@
             cakePopularity[i] = rand.NextDouble();
         }
         var sum = cakePopularity.Sum();
-
-        model.Axes.Add(new LinearAxis { Key = "Value", Position = AxisPosition.Left, });
+        for (int i = 0; i < 5; ++i)
+        {
+            _bars.Add(new BarItem { Value = (cakePopularity[i] / sum * 100) });
+        }
         var barSeries = new BarSeries
             {
                 XAxisKey = "Value",
                 YAxisKey = "CakeAxis",
-                ItemsSource = new List<BarItem>(new[]
-                                    {
-                new BarItem{ Value = (cakePopularity[0] / sum * 100) },
-                new BarItem{ Value = (cakePopularity[1] / sum * 100) },
-                new BarItem{ Value = (cakePopularity[2] / sum * 100) },
-                new BarItem{ Value = (cakePopularity[3] / sum * 100) },
-                new BarItem{ Value = (cakePopularity[4] / sum * 100) }
-            }),
+                ItemsSource = _bars,
                 LabelPlacement = LabelPlacement.Inside,
                 LabelFormatString = "{0:.00}%",
                 TrackerFormatString = "Hello {0} {1}",
                 //TrackerKey = "x",
             };
-        model.Series.Add(barSeries);
-        model.Axes.Add(new CategoryAxis
+        _model.Series.Add(barSeries);
+        _model.Axes.Add(new LinearAxis
+            {
+                Key = "Value",
+                Position = AxisPosition.Left,
+                MajorGridlineStyle = LineStyle.Automatic,
+                Minimum = 0,
+                Maximum = 100,
+            });
+        _model.Axes.Add(new CategoryAxis
             {
                 Position = AxisPosition.Bottom,
                 Key = "CakeAxis",
@@ -56,7 +65,23 @@
                     "Carrot cake"
                     }
             });
+    }
 
-        return model;
+    void Timeout(object? _) => InvokeAsync(Update);
+
+    void Update()
+    {
+        var rand = new Random();
+        double[] cakePopularity = new double[5];
+        for (int i = 0; i < _bars.Count; ++i)
+        {
+            cakePopularity[i] = rand.NextDouble();
+        }
+        var sum = cakePopularity.Sum();
+        for (int i = 0; i < _bars.Count; ++i)
+        {
+            _bars[i].Value = (cakePopularity[i] / sum * 100);
+        }
+        _model?.InvalidatePlot(true);
     }
 }

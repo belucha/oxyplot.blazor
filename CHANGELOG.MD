@@ -1,3 +1,7 @@
+## 2023-05-16 v2.5.7
+
+- improve: svg clip path id is not regenerated on upon every update (only for dynamic data)
+
 ## 2023-05-15 v2.5.6
 
 - fix: svg clip-path ids and thus urls where not unique when multiple BlazorPlotView
