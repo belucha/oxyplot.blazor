@@ -29,7 +29,7 @@ namespace OxyPlot.Blazor.Services
         [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(BoundingClientRect))]
         public ResizeObserver(IJSRuntime jsRuntime, ResizeObserverOptions options)
         {
-            _moduleTask = new(() => jsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/OxyPlot.Blazor/OxyPlot.Blazor.js").AsTask());
+            _moduleTask = new(() => jsRuntime.InvokeAsync<IJSObjectReference>("import", "/_content/OxyPlot.Blazor/OxyPlot.Blazor.js").AsTask());
             _dotNetRef = DotNetObjectReference.Create(this);
             _jsRuntime = jsRuntime;
             _options = options;
