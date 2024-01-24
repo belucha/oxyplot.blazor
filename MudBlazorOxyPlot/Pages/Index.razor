@@ -5,8 +5,18 @@
 
 <MudText Typo="Typo.h3" GutterBottom="true">Hello, world!</MudText>
 <MudText Class="mb-8">Welcome to your new app, powered by MudBlazor!</MudText>
-<MudAlert Severity="Severity.Normal">You can find documentation and examples on our website here: <MudLink Href="https://mudblazor.com" Typo="Typo.body2" Color="Color.Inherit"><b>www.mudblazor.com</b></MudLink></MudAlert>
-<MudButton OnClick="ShowDiagram">Show Diagram</MudButton>
+
+<MudAlert Severity="Severity.Normal">
+    You can find documentation and examples on our website here:
+    <MudLink Href="https://mudblazor.com" Typo="Typo.body2" Color="Color.Inherit">
+        <b>www.mudblazor.com</b>
+    </MudLink>
+</MudAlert>
+
+
+<MudDivider Class="py-3" />
+
+<MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ShowDiagram">Show Diagram</MudButton>
 
 @code {
     private Task ShowDiagram() => DialogService.ShowAsync<PlotDialog>("Dialog Example", new DialogOptions
