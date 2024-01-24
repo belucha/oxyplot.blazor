@@ -584,7 +584,7 @@ namespace OxyPlot.Blazor
                 return;
             }
 
-            var lines = Regex.Split(text, "\r\n");
+            var lines = Regex.Split(text, "(\r\n|\n|\r)");
 
             var textSize = MeasureText(text, fontFamily, fontSize, fontWeight);
             var lineHeight = textSize.Height / lines.Length;
