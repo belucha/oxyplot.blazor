@@ -15,12 +15,12 @@ namespace OxyPlot.Blazor
     using System.Linq;
     using System.Text;
     using Microsoft.AspNetCore.Components.Rendering;
-    using System.Text.RegularExpressions;
+
 
     /// <summary>
     /// Provides a render context for scalable vector graphics output.
     /// </summary>
-    public class BlazorSvgFragmentRenderContext : ClippingRenderContext
+    public partial class BlazorSvgFragmentRenderContext : ClippingRenderContext
     {
         /// <summary>
         /// Tooltip(title) for next svg element
@@ -584,7 +584,7 @@ namespace OxyPlot.Blazor
                 return;
             }
 
-            var lines = Regex.Split(text, "(\r\n|\n|\r)");
+            var lines = Helpers.SplitToLines(text);
 
             var textSize = MeasureText(text, fontFamily, fontSize, fontWeight);
             var lineHeight = textSize.Height / lines.Length;

@@ -1,3 +1,5 @@
+
+- add support for different line break symbols in tracker (closes #15 by archer0302)
 ## 2023-05-16 v2.5.7
 
 - improve: svg clip path id is not regenerated on upon every update (only for dynamic data)
