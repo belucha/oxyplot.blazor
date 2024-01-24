@@ -1,3 +1,7 @@
+## 2024-01-24 v2.5.9
+
+- add net8.0 as target framework in deploy script to
+
 ## 2024-01-24 v2.5.8
 
 - add MIT license file (closes #17)

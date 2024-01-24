@@ -53,6 +53,7 @@ jobs:
         dotnet-version: |
           6.0.x
           7.0.x
+          8.0.x
     - name: Pack nuget package
       run: |
         dotnet build -c Release /p:AssemblyVersion=${{ needs.get-version.outputs.VERSION }} /p:Version=${{ needs.get-version.outputs.VERSION }}
