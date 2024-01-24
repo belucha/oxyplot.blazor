@@ -1,4 +1,5 @@
 
+- add MIT license file (closes #17)
 - add support for different line break symbols in tracker (closes #15 by archer0302)
 - add net8.0 as target framework
 
