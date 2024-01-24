@@ -11,10 +11,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		CHANGELOG.MD = CHANGELOG.MD
 		.github\workflows\deploy-oxyplotblazor-nuget.yml = .github\workflows\deploy-oxyplotblazor-nuget.yml
+		LICENSE = LICENSE
 		README.MD = README.MD
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MudBlazorOxyPlot", "MudBlazorOxyPlot\MudBlazorOxyPlot.csproj", "{36618CD9-3389-46BA-828A-25256A40D16E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MudBlazorOxyPlot", "MudBlazorOxyPlot\MudBlazorOxyPlot.csproj", "{36618CD9-3389-46BA-828A-25256A40D16E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
