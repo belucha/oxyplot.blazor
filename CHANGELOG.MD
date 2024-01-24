@@ -1,3 +1,4 @@
+## 2024-01-24 v2.5.8
 
 - add MIT license file (closes #17)
 - add support for different line break symbols in tracker (closes #15 by archer0302)
