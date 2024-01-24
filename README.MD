@@ -4,7 +4,7 @@
 
 ## Requirements
 
-- dot net 6.0 / net 7.0
+- dot net 6.0 / net 7.0 / net 8.0
 
 ## Usage
 
@@ -39,4 +39,3 @@ var app = builder.Build();
 ## Known issues
 
 - Images anoations don't work yet (I do not understand that, they are just not visible)
-- Tracker is an extra `<div/>` - not pretty, only shown, when Parameter `TrackerEnabled` is set to true
