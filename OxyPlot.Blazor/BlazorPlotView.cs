@@ -271,6 +271,7 @@ public class BlazorPlotView : ComponentBase, IPlotView, IDisposable, IAsyncDispo
             AddEventCallback<MouseEventArgs>(builder, 10, "onmousemove", e => ActualController.HandleMouseMove(this, TranslateMouseEventArgs(e)));
             AddEventCallback<MouseEventArgs>(builder, 11, "onmouseenter", e => ActualController.HandleMouseEnter(this, TranslateMouseEventArgs(e)));
             AddEventCallback<MouseEventArgs>(builder, 12, "onmouseleave", e => ActualController.HandleMouseEnter(this, TranslateMouseEventArgs(e)));
+            AddEventCallback<WheelEventArgs>(builder, 13, "onwheel", e => ActualController.HandleMouseWheel(this, TranslateWheelEventArgs(e)), preventDefault: false);
             AddEventCallback<WheelEventArgs>(builder, 13, "onmousewheel", e => ActualController.HandleMouseWheel(this, TranslateWheelEventArgs(e)), preventDefault: false);
             AddEventCallback<KeyboardEventArgs>(builder, 14, "onkeydown", HandleKeyDownEvent, preventDefault: _preventKey, addAlways: true);
         }
