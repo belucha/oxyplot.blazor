@@ -1,3 +1,10 @@
+## 2025-01-04 v2.6.0
+
+- update to OxyPlot.Core 2.2.0
+- merge #19: Fix Scrolling on Firefox by Apflkuacha
+- add net9.0 support
+- drop net6.0 support
+
 ## 2024-01-24 v2.5.9
 
 - add net8.0 as target framework in deploy script to
