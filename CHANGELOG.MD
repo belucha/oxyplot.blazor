@@ -1,3 +1,5 @@
+- add net10.0 support, drop net7.0 support
+
 ## 2025-01-04 v2.6.0
 
 - update to OxyPlot.Core 2.2.0

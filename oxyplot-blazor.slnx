@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".github/workflows/deploy-oxyplotblazor-nuget.yml" />
+    <File Path="CHANGELOG.MD" />
+    <File Path="LICENSE" />
+    <File Path="README.MD" />
+  </Folder>
+  <Project Path="MudBlazorOxyPlot/MudBlazorOxyPlot.csproj" />
+  <Project Path="OxyPlot.Blazor.Server.Demo/OxyPlot.Blazor.Server.Demo.csproj" />
+  <Project Path="OxyPlot.Blazor/OxyPlot.Blazor.csproj" />
+</Solution>
