@@ -6,20 +6,19 @@
 //   Provides a render context for scalable vector graphics output.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
+using Microsoft.AspNetCore.Components.Rendering;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text;
 
 namespace OxyPlot.Blazor
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Globalization;
-    using System.Linq;
-    using System.Text;
-    using Microsoft.AspNetCore.Components.Rendering;
-
-
     /// <summary>
     /// Provides a render context for scalable vector graphics output.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "ASP0006:Do not use non-literal sequence numbers", Justification = "This is a helper classs, passing through the sequence numbers")]
     public partial class BlazorSvgFragmentRenderContext : ClippingRenderContext
     {
         /// <summary>
@@ -57,10 +56,11 @@ namespace OxyPlot.Blazor
         /// Initializes a new instance of the <see cref="SvgWriter" /> class.
         /// </summary>
         /// <param name="renderTreeBuilder">The render tree builder.</param>
-        public BlazorSvgFragmentRenderContext(RenderTreeBuilder renderTreeBuilder, string id)
+        public BlazorSvgFragmentRenderContext(RenderTreeBuilder renderTreeBuilder, string id, string numberFormat)
         {
             _id = id;
             _b = renderTreeBuilder ?? throw new ArgumentNullException(nameof(renderTreeBuilder));
+            NumberFormat = numberFormat;
             RendersToScreen = true;
         }
         public IRenderContext? TextMeasurer { get; set; }
@@ -69,7 +69,7 @@ namespace OxyPlot.Blazor
         /// Gets or sets the number format.
         /// </summary>
         /// <value>The number format.</value>
-        public string? NumberFormat { get; set; }
+        public string NumberFormat { get; }
 
         /// <summary>
         /// Creates a style.
@@ -259,13 +259,17 @@ namespace OxyPlot.Blazor
             WriteAttributeString("width", width);
             WriteAttributeString("height", height);
             WriteAttributeString("preserveAspectRatio", "none");
+
             var imageData = image.GetData();
             var encodedImage = new StringBuilder();
             encodedImage.Append("data:");
             encodedImage.Append("image/png");
             encodedImage.Append(";base64,");
             encodedImage.Append(Convert.ToBase64String(imageData));
-            WriteAttributeString("xlink", "href", "", encodedImage.ToString());
+
+            // Simply use "href" without the namespace
+            WriteAttributeString("href", encodedImage.ToString());
+
             WriteEndElement();
         }
 
@@ -495,14 +499,29 @@ namespace OxyPlot.Blazor
         private string PointsToString(IEnumerable<ScreenPoint> points)
         {
             var sb = new StringBuilder((points.TryGetNonEnumeratedCount(out var c) ? c : 20) * (6 + 6 + 2));
+            Span<char> bufx = stackalloc char[48];
+            Span<char> bufy = stackalloc char[48];
+            ReadOnlySpan<char> fmt = NumberFormat.AsSpan();
             foreach (var p in points)
             {
                 if (double.IsFinite(p.X) && double.IsFinite(p.Y))
                 {
-                    sb.Append(p.X.ToString(NumberFormat, CultureInfo.InvariantCulture));
-                    sb.Append(',');
-                    sb.Append(p.Y.ToString(NumberFormat, CultureInfo.InvariantCulture));
-                    sb.Append(' ');
+                    // Format X directly into the stack buffer
+                    if (!p.X.TryFormat(bufx, out int xLength, fmt, CultureInfo.InvariantCulture))
+                    {
+                        continue; // Skip corrupted/unformattable points entirely
+                    }
+                    // Format Y directly into the stack buffer
+                    if (!p.Y.TryFormat(bufy, out int yLength, fmt, CultureInfo.InvariantCulture))
+                    {
+                        continue; // Skip corrupted/unformattable points entirelyd
+                    }
+                    // Append X
+                    bufx[xLength++] = ',';
+                    sb.Append(bufx.Slice(0, xLength));
+                    // Append Y
+                    bufy[yLength++] = ' ';
+                    sb.Append(bufy.Slice(0, yLength));
                 }
             }
             return sb.ToString();

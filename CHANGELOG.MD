@@ -1,3 +1,7 @@
+## 2026-05-28 v2.7.0
+
+- added some performance optmizations
+- fix image rendering
 - add net10.0 support, drop net7.0 support
 - fix Height comparison
 

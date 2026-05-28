@@ -10,12 +10,12 @@ using OxyPlot.Blazor.Interop;
 
 namespace OxyPlot.Blazor.Services
 {
-    public class ResizeObserver : IResizeObserver, IDisposable, IAsyncDisposable
+    public class ResizeObserver : IResizeObserver, IAsyncDisposable
     {
-        private Boolean _isDisposed = false;
+        private bool _disposed = false;
 
-        private readonly Lazy<Task<IJSObjectReference>> _moduleTask;
         private readonly DotNetObjectReference<ResizeObserver> _dotNetRef;
+        private IJSObjectReference? _module;
         private readonly IJSRuntime _jsRuntime;
 
         private readonly Dictionary<Guid, ElementReference> _cachedValueIds = new();
@@ -29,17 +29,27 @@ namespace OxyPlot.Blazor.Services
         [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(BoundingClientRect))]
         public ResizeObserver(IJSRuntime jsRuntime, ResizeObserverOptions options)
         {
-            _moduleTask = new(() => jsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/OxyPlot.Blazor/OxyPlot.Blazor.js").AsTask());
             _dotNetRef = DotNetObjectReference.Create(this);
             _jsRuntime = jsRuntime;
             _options = options;
+        }
+
+        // Access it safely anywhere via a property or method
+        private async ValueTask<IJSObjectReference> GetModuleAsync()
+        {
+            // Return cached reference if it already exists
+            _module ??= await _jsRuntime.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./_content/OxyPlot.Blazor/OxyPlot.Blazor.js"
+            ).ConfigureAwait(false);
+            return _module;
         }
 
         public ResizeObserver(IJSRuntime jsRuntime, IOptions<ResizeObserverOptions>? options = null) : this(jsRuntime, options?.Value ?? new ResizeObserverOptions())
         {
         }
 
-        public async Task<BoundingClientRect?> Observe(ElementReference element) => (await Observe(new[] { element })).FirstOrDefault();
+        public async Task<BoundingClientRect?> Observe(ElementReference element) => (await Observe([element]).ConfigureAwait(false)).FirstOrDefault();
 
         public async Task<IEnumerable<BoundingClientRect>> Observe(IEnumerable<ElementReference> elements)
         {
@@ -57,8 +67,8 @@ namespace OxyPlot.Blazor.Services
                 elementIds.Add(id);
                 _cachedValueIds.Add(id, item);
             }
-            var js = await _moduleTask.Value;
-            var result = await js.InvokeAsync<IEnumerable<BoundingClientRect>>("connect", _id, _dotNetRef, filteredElements, elementIds, _options) ?? Array.Empty<BoundingClientRect>();
+            var js = await GetModuleAsync().ConfigureAwait(false);
+            var result = await js.InvokeAsync<IEnumerable<BoundingClientRect>>("connect", _id, _dotNetRef, filteredElements, elementIds, _options).ConfigureAwait(false) ?? Array.Empty<BoundingClientRect>();
             var counter = 0;
             foreach (var item in result)
             {
@@ -77,8 +87,8 @@ namespace OxyPlot.Blazor.Services
             //if the unobserve happens during a component teardown, the try-catch is a safe guard to prevent a "pseudo" exception
             try
             {
-                var js = await _moduleTask.Value;
-                await js.InvokeVoidAsync("disconnect", _id, elementId);
+                var js = await GetModuleAsync().ConfigureAwait(false);
+                await js.InvokeVoidAsync("disconnect", _id, elementId).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -98,7 +108,7 @@ namespace OxyPlot.Blazor.Services
             Dictionary<ElementReference, BoundingClientRect> parsedChanges = new();
             foreach (var item in changes)
             {
-                if (_cachedValueIds.TryGetValue(item.Id, out var elementRef)) 
+                if (_cachedValueIds.TryGetValue(item.Id, out var elementRef))
                 {
                     _cachedValues[elementRef] = item.Size;
                     parsedChanges.Add(elementRef, item.Size);
@@ -123,33 +133,6 @@ namespace OxyPlot.Blazor.Services
         public double GetHeight(ElementReference reference) => GetSizeInfo(reference)?.Height ?? 0.0;
         public double GetWidth(ElementReference reference) => GetSizeInfo(reference)?.Width ?? 0.0;
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing && _isDisposed == false)
-            {
-                _isDisposed = true;
-                _dotNetRef.Dispose();
-                _cachedValueIds.Clear();
-                _cachedValues.Clear();
-
-                //in a fire and forget manner, we just "trying" to cancel the listener. So, we are not interested in an potential error 
-                try
-                {
-                    if (_moduleTask.Value.IsCompletedSuccessfully)
-                    {
-                        _ = _moduleTask.Value.Result.InvokeVoidAsync($"cancelListener", _id);
-                    }
-                }
-                catch (Exception) { }
-            }
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
         /// <summary>
         /// Gets the client element pos of the target element
         /// </summary>
@@ -157,27 +140,39 @@ namespace OxyPlot.Blazor.Services
         /// <param name="JSRuntime"></param>
         public async ValueTask SetCursor(ElementReference element, string cursorName)
         {
-            var js = await _moduleTask.Value.ConfigureAwait(false);
-            await js.InvokeVoidAsync("setCursor", element, cursorName).ConfigureAwait(false);
+            if (!_disposed)
+            {
+                var js = await GetModuleAsync().ConfigureAwait(false);
+                await js.InvokeVoidAsync("setCursor", element, cursorName).ConfigureAwait(false);
+            }
         }
 
         public async ValueTask DisposeAsync()
         {
-            if (_isDisposed == true) { return; }
+            if (_disposed == true) { return; }
 
-            _isDisposed = true;
-
-            _dotNetRef.Dispose();
-            _cachedValueIds.Clear();
-            _cachedValues.Clear();
+            _disposed = true;
 
             //in a fire and forget manner, we just "trying" to cancel the listener. So, we are not interested in an potential error 
             try
             {
-                var js = await _moduleTask.Value;
-                await js.InvokeVoidAsync($"cancelListener", _id);
+                if (_module != null)
+                {
+                    await _module.InvokeVoidAsync($"cancelListener", _id).ConfigureAwait(false);
+                    await _module.DisposeAsync().ConfigureAwait(false);
+                    _module = null;
+                }
+
             }
-            catch (Exception) { }
+            catch (Exception)
+            {
+                // Suppress all JS interop exceptions (including disconnections and runtime errors)
+                // to prevent an execution halt from leaking the .NET references below.
+            }
+
+            _dotNetRef.Dispose();
+            _cachedValueIds.Clear();
+            _cachedValues.Clear();
         }
     }
 }

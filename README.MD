@@ -4,7 +4,7 @@
 
 ## Requirements
 
-- dot net 6.0 / net 7.0 / net 8.0 / net 9.0
+- dot net 8.0 / net 9.0 / net 10.0
 
 ## Usage
 
@@ -34,8 +34,3 @@ var app = builder.Build();
 	PlotModel _model = ... // some model
 }
 ```
-
-
-## Known issues
-
-- Images anoations don't work yet (I do not understand that, they are just not visible)

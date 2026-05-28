@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 using OxyPlot.Blazor.Server.Demo;
 using OxyPlot.Blazor.Server.Demo.Data;
 using OxyPlot.Blazor.Services;
@@ -7,6 +5,7 @@ using OxyPlot.Blazor.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.WebHost.UseStaticWebAssets();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddSingleton<WeatherForecastService>();
@@ -24,6 +23,7 @@ if (!app.Environment.IsDevelopment())
 
 
 app.UseStaticFiles();
+app.MapStaticAssets();
 
 app.UseRouting();
 

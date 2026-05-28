@@ -1,5 +1,4 @@
-﻿#nullable disable
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
@@ -8,28 +7,30 @@ using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using OxyPlot.Blazor.Services;
 using OxyPlot.Blazor.Interop;
+using Microsoft.Extensions.Logging;
 
 namespace OxyPlot.Blazor;
 
-public class BlazorPlotView : ComponentBase, IPlotView, IDisposable, IAsyncDisposable
+public class BlazorPlotView : ComponentBase, IPlotView, IAsyncDisposable
 {
     const double TrackerOffset = 10.0;
     private ElementReference _svg;
-    private TrackerHitResult _tracker;
-    private PlotModel _currentModel;
+    private TrackerHitResult? _tracker;
+    private PlotModel? _currentModel;
     private OxyRect _svgPos = new(0, 0, 0, 0);
-    private IPlotController _defaultController;
+    readonly IPlotController _defaultController = new PlotController();
     private bool _updateDataFlag = true;
     private OxyRect _zoomRectangle;
     private bool _disposed;
     private bool _preventKey;
-    private IResizeObserver _resizeObserver;
-    [Inject] IResizeObserverFactory ResizeObserverFactory { get; set; }
+    private IResizeObserver? _resizeObserver;
+    [Inject] ILogger<BlazorPlotView> Logger { get; set; } = default!;
+    [Inject] IResizeObserverFactory ResizeObserverFactory { get; set; } = default!;
     [Parameter] public string PreserveAspectRation { get; set; } = "none";
-    [Parameter] public string Width { get; set; }
-    [Parameter] public string Height { get; set; }
-    [Parameter] public string Class { get; set; }
-    [Parameter] public string Style { get; set; }
+    [Parameter] public string? Width { get; set; }
+    [Parameter] public string? Height { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public string? Style { get; set; }
     [Parameter] public string NumberFormat { get; set; } = "0.##";
     [Parameter] public bool ReverseMouseWheel { get; set; }
     /// <summary>
@@ -59,7 +60,7 @@ public class BlazorPlotView : ComponentBase, IPlotView, IDisposable, IAsyncDispo
     /// <summary>
     /// tracker font family (defaults to Model.DefaultFontFamily)
     /// </summary>
-    [Parameter] public string TrackerFontFamily { get; set; }
+    [Parameter] public string? TrackerFontFamily { get; set; }
     [Parameter] public double TrackerFontWeight { get; set; } = 400.0;
     /// <summary>
     /// tracker padding around text (width=50, height=20)
@@ -70,26 +71,30 @@ public class BlazorPlotView : ComponentBase, IPlotView, IDisposable, IAsyncDispo
     /// Gets or sets the plot controller.
     /// </summary>
     /// <value>The controller.</value>
-    [Parameter] public IPlotController Controller { get; set; }
+    [Parameter] public IPlotController? Controller { get; set; }
     /// <summary>
     /// Gets or sets the model.
     /// </summary>
-    [Parameter][Required] public PlotModel Model { get; set; }
+    [Parameter][Required] public PlotModel? Model { get; set; }
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
         _resizeObserver = ResizeObserverFactory.Create();
-        _resizeObserver.OnResized += _resizeObserver_OnResized;
+        _resizeObserver.OnResized += OnResized;
 
     }
 
-    private void _resizeObserver_OnResized(IDictionary<ElementReference, BoundingClientRect> changes)
+    private void OnResized(IDictionary<ElementReference, BoundingClientRect> changes)
     {
         if (!_disposed && changes.TryGetValue(_svg, out var rect))
         {
-            _svgPos = rect.ToOxyRect();
-            StateHasChanged();
+            var r = rect.ToOxyRect();
+            if (!_svgPos.Equals(r))
+            {
+                _svgPos = r;
+                StateHasChanged();
+            }
         }
     }
 
@@ -101,13 +106,13 @@ public class BlazorPlotView : ComponentBase, IPlotView, IDisposable, IAsyncDispo
     /// <value>
     /// The actual model.
     /// </value>
-    Model IView.ActualModel => _currentModel;
+    Model? IView.ActualModel => _currentModel;
 
     /// <summary>
     /// Gets the actual model.
     /// </summary>
     /// <value>The actual model.</value>
-    public PlotModel ActualModel => _currentModel;
+    public PlotModel? ActualModel => _currentModel;
 
     /// <summary>
     /// Gets the actual controller.
@@ -126,7 +131,7 @@ public class BlazorPlotView : ComponentBase, IPlotView, IDisposable, IAsyncDispo
     /// Gets the actual plot controller.
     /// </summary>
     /// <value>The actual plot controller.</value>
-    public IPlotController ActualController => Controller ?? (_defaultController ??= new PlotController());
+    public IPlotController ActualController => Controller ?? _defaultController;
 
     /// <summary>
     /// Shows the tracker.
@@ -172,7 +177,7 @@ public class BlazorPlotView : ComponentBase, IPlotView, IDisposable, IAsyncDispo
     /// <param name="cursorType">The cursor type.</param>
     public async void SetCursorType(CursorType cursorType)
     {
-        if (!_disposed)
+        if (!_disposed && _resizeObserver != null)
         {
             await _resizeObserver.SetCursor(_svg, TranslateCursorType(cursorType));
         }
@@ -199,6 +204,13 @@ public class BlazorPlotView : ComponentBase, IPlotView, IDisposable, IAsyncDispo
 
     protected override void OnParametersSet()
     {
+        // if the svg size is specified in pixels, we can start rendering right now
+        if (
+            Width != null && Width.EndsWith("px") && int.TryParse(Width[..^2], out var wpx) && wpx > 0 &&
+            Height != null && Height.EndsWith("px") && int.TryParse(Height[..^2], out var hpx) && hpx > 0)
+        {
+            _svgPos = new OxyRect(0, 0, wpx, hpx);
+        }
         if (_currentModel != Model)
         {
             if (_currentModel != null)
@@ -215,6 +227,7 @@ public class BlazorPlotView : ComponentBase, IPlotView, IDisposable, IAsyncDispo
         }
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "ASP0006:Do not use non-literal sequence numbers", Justification = "This is an helper method, passing through the sequence number")]
     void AddEventCallback<T>(RenderTreeBuilder builder, int sequence, string name, Action<T> callback, bool preventDefault = true, bool stopPropagtion = true, bool addAlways = true)
     {
         builder.AddAttribute(sequence, name, EventCallback.Factory.Create<T>(this, callback));
@@ -248,13 +261,6 @@ public class BlazorPlotView : ComponentBase, IPlotView, IDisposable, IAsyncDispo
         {
             builder.AddAttribute(4, "height", Height);
         }
-        // if the svg size is specified in pixels, we can start rendering right now
-        if (_svgPos.Width == 0 && _svgPos.Height == 0
-            && Width != null && Width.EndsWith("px") && int.TryParse(Width[..^2], out var wpx) && wpx > 0
-            && Height != null && Height.EndsWith("px") && int.TryParse(Height[..^2], out var hpx) && hpx > 0)
-        {
-            _svgPos = new OxyRect(0, 0, wpx, hpx);
-        }
         if (_svgPos.Width > 0)
         {
             builder.AddAttribute(5, "viewBox", FormattableString.Invariant($"0 0 {_svgPos.Width} {_svgPos.Height}"));
@@ -283,13 +289,12 @@ public class BlazorPlotView : ComponentBase, IPlotView, IDisposable, IAsyncDispo
         });
         if (_svgPos.Width > 0 && _currentModel is IPlotModel plotModel)
         {
-            var renderer = new BlazorSvgFragmentRenderContext(builder, _svg.Id)
+            var renderer = new BlazorSvgFragmentRenderContext(builder, _svg.Id, NumberFormat ?? "0.##")
             {
                 TextMeasurer = new PdfRenderContext(_svgPos.Width, _svgPos.Height, plotModel.Background),
-                NumberFormat = NumberFormat,
             };
 
-            plotModel.Update(_updateDataFlag);
+            plotModel.Update(updateData: _updateDataFlag);
             _updateDataFlag = false;
 
             renderer.SequenceNumber = 20;
@@ -358,7 +363,7 @@ public class BlazorPlotView : ComponentBase, IPlotView, IDisposable, IAsyncDispo
     {
         if (firstRender)
         {
-            if (_svg.Id != null && !_disposed)
+            if (_svg.Id != null && !_disposed && _resizeObserver != null)
             {
                 try
                 {
@@ -366,9 +371,9 @@ public class BlazorPlotView : ComponentBase, IPlotView, IDisposable, IAsyncDispo
                     _svgPos = size != null ? size.ToOxyRect() : new OxyRect(0, 0, 0, 0);
                     StateHasChanged();
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // swallow all errors
+                    Logger.LogError(ex, "Failed to observe!");
                 }
             }
         }
@@ -517,29 +522,21 @@ public class BlazorPlotView : ComponentBase, IPlotView, IDisposable, IAsyncDispo
             _ => "default",
         };
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         if (!_disposed)
         {
-            _resizeObserver?.Dispose();
-            // detach model from view (closes #5)
+            _disposed = true;
             if (_currentModel != null)
             {
                 ((IPlotModel)_currentModel).AttachPlotView(null);
                 _currentModel = null;
             }
-            GC.SuppressFinalize(this);
+            if (_resizeObserver != null)
+            {
+                await _resizeObserver.DisposeAsync();
+                _resizeObserver = null;
+            }
         }
-        _disposed = true;
-    }
-
-    public ValueTask DisposeAsync()
-    {
-        if (_currentModel != null)
-        {
-            ((IPlotModel)_currentModel).AttachPlotView(null);
-            _currentModel = null;
-        }
-        return _resizeObserver?.DisposeAsync() ?? ValueTask.CompletedTask;
     }
 }
