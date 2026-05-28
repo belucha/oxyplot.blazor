@@ -1,4 +1,5 @@
 - add net10.0 support, drop net7.0 support
+- fix Height comparison
 
 ## 2025-01-04 v2.6.0
 
