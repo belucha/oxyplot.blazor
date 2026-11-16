@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace OxyPlot.Blazor
@@ -32,6 +33,7 @@ namespace OxyPlot.Blazor
         int _clipPathNr;
 
         private readonly RenderTreeBuilder _b;
+        private readonly SvgNumberFormatter _number;
         public int SequenceNumber { get; set; }
 
         /// <summary>
@@ -61,6 +63,7 @@ namespace OxyPlot.Blazor
             _id = id;
             _b = renderTreeBuilder ?? throw new ArgumentNullException(nameof(renderTreeBuilder));
             NumberFormat = numberFormat;
+            _number = new SvgNumberFormatter(numberFormat);
             RendersToScreen = true;
         }
         public IRenderContext? TextMeasurer { get; set; }
@@ -115,7 +118,7 @@ namespace OxyPlot.Blazor
                 style.Append("stroke:");
                 style.Append(stroke.FormatColor());
                 style.Append(";stroke-width:");
-                style.AppendInvariant(thickness, NumberFormat);
+                _number.Append(style, thickness);
                 switch (lineJoin)
                 {
                     case LineJoin.Round:
@@ -141,7 +144,7 @@ namespace OxyPlot.Blazor
                         {
                             style.Append(',');
                         }
-                        style.AppendInvariant(dashArray[i], NumberFormat);
+                        _number.Append(style, dashArray[i]);
                     }
                 }
             }
@@ -404,7 +407,9 @@ namespace OxyPlot.Blazor
 
             var transform = new StringBuilder(128);
             transform.Append("translate(");
-            transform.AppendInvariant(position, NumberFormat);
+            _number.Append(transform, position.X);
+            transform.Append(',');
+            _number.Append(transform, position.Y);
             transform.Append(')');
             if (Math.Abs(rotate) > 0)
             {
@@ -453,7 +458,7 @@ namespace OxyPlot.Blazor
         /// </summary>
         /// <param name="name">The name.</param>
         /// <param name="value">The value.</param>
-        protected void WriteAttributeString(string name, double value) => _b.AddAttribute(SequenceNumber, name, value.ToString(NumberFormat, CultureInfo.InvariantCulture));
+        protected void WriteAttributeString(string name, double value) => _b.AddAttribute(SequenceNumber, name, _number.Format(value));
 
         protected void WriteAttributeString(string prefix, string localName, string _1, string value) => _b.AddAttribute(SequenceNumber, prefix + ":" + localName, value);
 
@@ -498,33 +503,60 @@ namespace OxyPlot.Blazor
         /// <returns>A string.</returns>
         private string PointsToString(IEnumerable<ScreenPoint> points)
         {
-            var sb = new StringBuilder((points.TryGetNonEnumeratedCount(out var c) ? c : 20) * (6 + 6 + 2));
-            Span<char> bufx = stackalloc char[48];
-            Span<char> bufy = stackalloc char[48];
-            ReadOnlySpan<char> fmt = NumberFormat.AsSpan();
-            foreach (var p in points)
+            var buffer = new PooledCharBuffer((points.TryGetNonEnumeratedCount(out var c) ? c : 20) * 16);
+            try
             {
-                if (double.IsFinite(p.X) && double.IsFinite(p.Y))
+                if (points is List<ScreenPoint> list)
                 {
-                    // Format X directly into the stack buffer
-                    if (!p.X.TryFormat(bufx, out int xLength, fmt, CultureInfo.InvariantCulture))
+                    foreach (var p in CollectionsMarshal.AsSpan(list))
                     {
-                        continue; // Skip corrupted/unformattable points entirely
+                        AppendPoint(ref buffer, p);
                     }
-                    // Format Y directly into the stack buffer
-                    if (!p.Y.TryFormat(bufy, out int yLength, fmt, CultureInfo.InvariantCulture))
-                    {
-                        continue; // Skip corrupted/unformattable points entirelyd
-                    }
-                    // Append X
-                    bufx[xLength++] = ',';
-                    sb.Append(bufx.Slice(0, xLength));
-                    // Append Y
-                    bufy[yLength++] = ' ';
-                    sb.Append(bufy.Slice(0, yLength));
                 }
+                else if (points is ScreenPoint[] array)
+                {
+                    foreach (var p in array)
+                    {
+                        AppendPoint(ref buffer, p);
+                    }
+                }
+                else
+                {
+                    foreach (var p in points)
+                    {
+                        AppendPoint(ref buffer, p);
+                    }
+                }
+                return buffer.ToString();
             }
-            return sb.ToString();
+            finally
+            {
+                buffer.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Appends "x,y " to the buffer. Points that cannot be formatted are skipped.
+        /// </summary>
+        private void AppendPoint(ref PooledCharBuffer buffer, ScreenPoint p)
+        {
+            if (!double.IsFinite(p.X) || !double.IsFinite(p.Y))
+            {
+                return;
+            }
+            var span = buffer.GetSpan(2 * SvgNumberFormatter.MaxLength + 2);
+            if (!_number.TryFormat(p.X, span, out var length))
+            {
+                return;
+            }
+            span[length++] = ',';
+            if (!_number.TryFormat(p.Y, span[length..], out var yLength))
+            {
+                return;
+            }
+            length += yLength;
+            span[length++] = ' ';
+            buffer.Advance(length);
         }
 
         /// <summary>
