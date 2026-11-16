@@ -1,3 +1,5 @@
+- add net11.0 support
+
 ## 2026-05-28 v2.7.0
 
 - added some performance optmizations
