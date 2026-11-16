@@ -36,6 +36,8 @@ namespace OxyPlot.Blazor
 
         public void Advance(int count) => _length += count;
 
+        public void Clear() => _length = 0;
+
         public void Append(char c)
         {
             GetSpan(1)[0] = c;

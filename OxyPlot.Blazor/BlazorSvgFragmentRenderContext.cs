@@ -536,6 +536,206 @@ namespace OxyPlot.Blazor
         }
 
         /// <summary>
+        /// Shapes drawn in one call can be written as a single path element when this does not change the output:
+        /// only the fill or only the stroke is visible and it is opaque, so overlapping shapes look the same.
+        /// </summary>
+        private bool CanCombineShapes(int count, OxyColor fill, OxyColor stroke, double thickness)
+        {
+            if (count < 2 || title != null)
+            {
+                return false;
+            }
+            var hasFill = fill.IsVisible();
+            var hasStroke = stroke.IsVisible() && thickness > 0;
+            return hasFill != hasStroke && (hasFill ? fill.A : stroke.A) == 0xFF;
+        }
+
+        /// <summary>
+        /// Maximum number of shapes written into one path element.
+        /// Browsers draw a few medium sized paths faster than both many small elements and one huge path.
+        /// </summary>
+        private const int MaxShapesPerPath = 1000;
+
+        /// <summary>
+        /// Counts a shape written to <paramref name="data"/>, writes the path element when it is full.
+        /// </summary>
+        private void EndShape(ref PooledCharBuffer data, ref int shapes, string style, EdgeRenderingMode edgeRenderingMode)
+        {
+            if (++shapes >= MaxShapesPerPath)
+            {
+                FlushPath(ref data, ref shapes, style, edgeRenderingMode);
+            }
+        }
+
+        /// <summary>
+        /// Writes the shapes collected in <paramref name="data"/> as a path element.
+        /// </summary>
+        private void FlushPath(ref PooledCharBuffer data, ref int shapes, string style, EdgeRenderingMode edgeRenderingMode)
+        {
+            if (data.Length > 0)
+            {
+                WritePath(data.ToString(), style, edgeRenderingMode);
+                data.Clear();
+            }
+            shapes = 0;
+        }
+
+        /// <summary>
+        /// Writes a path element.
+        /// </summary>
+        private void WritePath(string data, string style, EdgeRenderingMode edgeRenderingMode)
+        {
+            WriteStartElement("path");
+            WriteAttributeString("d", data);
+            WriteAttributeString("style", style);
+            WriteEdgeRenderingModeAttribute(edgeRenderingMode);
+            WriteEndElement();
+        }
+
+        /// <summary>
+        /// Appends a number to the buffer.
+        /// </summary>
+        private void AppendNumber(ref PooledCharBuffer buffer, double value)
+        {
+            var span = buffer.GetSpan(SvgNumberFormatter.MaxLength);
+            if (_number.TryFormat(value, span, out var length))
+            {
+                buffer.Advance(length);
+            }
+            else
+            {
+                buffer.Append(value.ToString(NumberFormat, CultureInfo.InvariantCulture));
+            }
+        }
+
+        /// <summary>
+        /// Appends a path command followed by "x,y".
+        /// </summary>
+        private void AppendCommand(ref PooledCharBuffer buffer, char command, double x, double y)
+        {
+            buffer.Append(command);
+            AppendNumber(ref buffer, x);
+            buffer.Append(',');
+            AppendNumber(ref buffer, y);
+        }
+
+        /// <summary>
+        /// Draws the ellipses, as path elements when possible (e.g. the markers of a scatter series).
+        /// </summary>
+        public override void DrawEllipses(IList<OxyRect> rectangles, OxyColor fill, OxyColor stroke, double thickness, EdgeRenderingMode edgeRenderingMode)
+        {
+            if (!CanCombineShapes(rectangles.Count, fill, stroke, thickness))
+            {
+                base.DrawEllipses(rectangles, fill, stroke, thickness, edgeRenderingMode);
+                return;
+            }
+            var style = CreateStyle(fill, stroke, thickness);
+            var data = new PooledCharBuffer(Math.Min(rectangles.Count, MaxShapesPerPath) * 48);
+            var shapes = 0;
+            try
+            {
+                foreach (var rect in rectangles)
+                {
+                    if (!double.IsFinite(rect.Left) || !double.IsFinite(rect.Top) || !double.IsFinite(rect.Width) || !double.IsFinite(rect.Height))
+                    {
+                        continue;
+                    }
+                    // two half circle arcs from the left to the right end and back
+                    var rx = rect.Width / 2;
+                    var ry = rect.Height / 2;
+                    AppendCommand(ref data, 'M', rect.Left, rect.Top + ry);
+                    for (var i = 0; i < 2; i++)
+                    {
+                        AppendCommand(ref data, 'a', rx, ry);
+                        data.Append(" 0 1 0 ");
+                        AppendNumber(ref data, i == 0 ? rect.Width : -rect.Width);
+                        data.Append(",0");
+                    }
+                    data.Append('z');
+                    EndShape(ref data, ref shapes, style, edgeRenderingMode);
+                }
+                FlushPath(ref data, ref shapes, style, edgeRenderingMode);
+            }
+            finally
+            {
+                data.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Draws the rectangles, as path elements when possible.
+        /// </summary>
+        public override void DrawRectangles(IList<OxyRect> rectangles, OxyColor fill, OxyColor stroke, double thickness, EdgeRenderingMode edgeRenderingMode)
+        {
+            if (!CanCombineShapes(rectangles.Count, fill, stroke, thickness))
+            {
+                base.DrawRectangles(rectangles, fill, stroke, thickness, edgeRenderingMode);
+                return;
+            }
+            var style = CreateStyle(fill, stroke, thickness);
+            var data = new PooledCharBuffer(Math.Min(rectangles.Count, MaxShapesPerPath) * 40);
+            var shapes = 0;
+            try
+            {
+                foreach (var rect in rectangles)
+                {
+                    if (!double.IsFinite(rect.Left) || !double.IsFinite(rect.Top) || !double.IsFinite(rect.Width) || !double.IsFinite(rect.Height))
+                    {
+                        continue;
+                    }
+                    AppendCommand(ref data, 'M', rect.Left, rect.Top);
+                    data.Append('h');
+                    AppendNumber(ref data, rect.Width);
+                    data.Append('v');
+                    AppendNumber(ref data, rect.Height);
+                    data.Append('h');
+                    AppendNumber(ref data, -rect.Width);
+                    data.Append('z');
+                    EndShape(ref data, ref shapes, style, edgeRenderingMode);
+                }
+                FlushPath(ref data, ref shapes, style, edgeRenderingMode);
+            }
+            finally
+            {
+                data.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Draws the line segments (e.g. axis ticks), as path elements when possible.
+        /// </summary>
+        public override void DrawLineSegments(IList<ScreenPoint> points, OxyColor stroke, double thickness, EdgeRenderingMode edgeRenderingMode, double[] dashArray, LineJoin lineJoin)
+        {
+            if (!CanCombineShapes(points.Count / 2, OxyColors.Undefined, stroke, thickness))
+            {
+                base.DrawLineSegments(points, stroke, thickness, edgeRenderingMode, dashArray, lineJoin);
+                return;
+            }
+            var style = CreateStyle(OxyColors.Undefined, stroke, thickness, dashArray, lineJoin);
+            var data = new PooledCharBuffer(Math.Min(points.Count / 2, MaxShapesPerPath) * 40);
+            var shapes = 0;
+            try
+            {
+                for (var i = 0; i + 1 < points.Count; i += 2)
+                {
+                    var p1 = points[i];
+                    var p2 = points[i + 1];
+                    if (double.IsFinite(p1.X) && double.IsFinite(p1.Y) && double.IsFinite(p2.X) && double.IsFinite(p2.Y))
+                    {
+                        AppendCommand(ref data, 'M', p1.X, p1.Y);
+                        AppendCommand(ref data, 'L', p2.X, p2.Y);
+                        EndShape(ref data, ref shapes, style, edgeRenderingMode);
+                    }
+                }
+                FlushPath(ref data, ref shapes, style, edgeRenderingMode);
+            }
+            finally
+            {
+                data.Dispose();
+            }
+        }
+
+        /// <summary>
         /// Appends "x,y " to the buffer. Points that cannot be formatted are skipped.
         /// </summary>
         private void AppendPoint(ref PooledCharBuffer buffer, ScreenPoint p)
