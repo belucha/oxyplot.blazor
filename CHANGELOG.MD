@@ -1,3 +1,7 @@
+- render the plot only when it changed: mouse events (hover, tracker, zoom rectangle) no longer render the whole plot again
+- format svg coordinates without the .NET custom numeric format parser (about 20x faster on WebAssembly)
+- draw the markers, line segments and rectangles of one draw call as svg path elements when the output stays the same
+
 ## 2026-05-28 v2.7.0
 
 - added some performance optmizations
