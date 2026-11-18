@@ -80,7 +80,7 @@ namespace OxyPlot.Blazor
             {
                 return value;
             }
-            var scaled = Math.Floor(Math.Abs(value) * _scale + 0.5);
+            var scaled = RoundScaled(Math.Abs(value) * _scale);
             return scaled < MaxFastValue ? Math.CopySign(scaled / _scale, value) : value;
         }
 
@@ -88,9 +88,8 @@ namespace OxyPlot.Blazor
         {
             if (_decimals >= 0 && destination.Length >= MaxLength)
             {
-                // round half away from zero, like the custom numeric format does
                 var negative = value < 0;
-                var scaled = Math.Floor((negative ? -value : value) * _scale + 0.5);
+                var scaled = RoundScaled((negative ? -value : value) * _scale);
                 if (scaled < uint.MaxValue)
                 {
                     charsWritten = Write((uint)scaled, negative, destination);
@@ -104,6 +103,12 @@ namespace OxyPlot.Blazor
             }
             return value.TryFormat(destination, out charsWritten, _format, CultureInfo.InvariantCulture);
         }
+
+        /// <summary>
+        /// Rounds half away from zero, like the custom numeric format does. That format works with 15 significant digits,
+        /// so a value like 1147.485, which is stored slightly below the midpoint, is rounded up as well.
+        /// </summary>
+        private static double RoundScaled(double scaled) => Math.Floor(scaled + 0.5 + scaled * 1e-15);
 
         public string Format(double value)
         {
