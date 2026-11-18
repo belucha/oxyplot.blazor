@@ -538,10 +538,11 @@ namespace OxyPlot.Blazor
         /// <summary>
         /// Shapes drawn in one call can be written as a single path element when this does not change the output:
         /// only the fill or only the stroke is visible and it is opaque, so overlapping shapes look the same.
+        /// The precision of the number format has to be known to write the same geometry as the single elements.
         /// </summary>
         private bool CanCombineShapes(int count, OxyColor fill, OxyColor stroke, double thickness)
         {
-            if (count < 2 || title != null)
+            if (count < 2 || title != null || !_number.CanRound)
             {
                 return false;
             }
@@ -640,15 +641,22 @@ namespace OxyPlot.Blazor
                     {
                         continue;
                     }
-                    // two half circle arcs from the left to the right end and back
-                    var rx = rect.Width / 2;
-                    var ry = rect.Height / 2;
-                    AppendCommand(ref data, 'M', rect.Left, rect.Top + ry);
+                    // use the rounded values of an ellipse element: the radii have to match the distance of the arc ends exactly
+                    var rx = _number.Round(rect.Width / 2);
+                    var ry = _number.Round(rect.Height / 2);
+                    if (rx <= 0 || ry <= 0)
+                    {
+                        continue; // an ellipse element without radius is not rendered
+                    }
+                    var cx = _number.Round(rect.Left + rect.Width / 2);
+                    var cy = _number.Round(rect.Top + rect.Height / 2);
+                    // two half ellipse arcs from the left to the right end and back
+                    AppendCommand(ref data, 'M', cx - rx, cy);
                     for (var i = 0; i < 2; i++)
                     {
                         AppendCommand(ref data, 'a', rx, ry);
                         data.Append(" 0 1 0 ");
-                        AppendNumber(ref data, i == 0 ? rect.Width : -rect.Width);
+                        AppendNumber(ref data, i == 0 ? 2 * rx : -2 * rx);
                         data.Append(",0");
                     }
                     data.Append('z');
@@ -682,6 +690,10 @@ namespace OxyPlot.Blazor
                     if (!double.IsFinite(rect.Left) || !double.IsFinite(rect.Top) || !double.IsFinite(rect.Width) || !double.IsFinite(rect.Height))
                     {
                         continue;
+                    }
+                    if (_number.Round(rect.Width) <= 0 || _number.Round(rect.Height) <= 0)
+                    {
+                        continue; // a rect element without size is not rendered, but a path would draw its stroke
                     }
                     AppendCommand(ref data, 'M', rect.Left, rect.Top);
                     data.Append('h');
@@ -745,12 +757,12 @@ namespace OxyPlot.Blazor
                 return;
             }
             var span = buffer.GetSpan(2 * SvgNumberFormatter.MaxLength + 2);
-            if (!_number.TryFormat(p.X, span, out var length))
+            if (!_number.TryFormat(p.X, span[..SvgNumberFormatter.MaxLength], out var length))
             {
                 return;
             }
             span[length++] = ',';
-            if (!_number.TryFormat(p.Y, span[length..], out var yLength))
+            if (!_number.TryFormat(p.Y, span.Slice(length, SvgNumberFormatter.MaxLength), out var yLength))
             {
                 return;
             }

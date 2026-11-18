@@ -32,11 +32,11 @@ namespace OxyPlot.Blazor
             "80818283848586878889" +
             "90919293949596979899";
 
-        private readonly string _format;
+        private readonly string? _format;
         private readonly int _decimals;
         private readonly double _scale;
 
-        public SvgNumberFormatter(string format)
+        public SvgNumberFormatter(string? format)
         {
             _format = format;
             _decimals = GetFastDecimals(format);
@@ -46,13 +46,13 @@ namespace OxyPlot.Blazor
         /// <summary>
         /// Gets the number of decimals of a "0.##" like format or -1 if the format is not supported by the fast path.
         /// </summary>
-        internal static int GetFastDecimals(string format)
+        internal static int GetFastDecimals(string? format)
         {
             if (format == "0")
             {
                 return 0;
             }
-            if (format.Length < 3 || format.Length - 2 > MaxDecimals || format[0] != '0' || format[1] != '.')
+            if (format == null || format.Length < 3 || format.Length - 2 > MaxDecimals || format[0] != '0' || format[1] != '.')
             {
                 return -1;
             }
@@ -64,6 +64,24 @@ namespace OxyPlot.Blazor
                 }
             }
             return format.Length - 2;
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether <see cref="Round"/> knows the precision of the format.
+        /// </summary>
+        public bool CanRound => _decimals >= 0;
+
+        /// <summary>
+        /// Rounds a value to the precision of the format, formatting the result gives the same text as formatting the value.
+        /// </summary>
+        public double Round(double value)
+        {
+            if (!CanRound)
+            {
+                return value;
+            }
+            var scaled = Math.Floor(Math.Abs(value) * _scale + 0.5);
+            return scaled < MaxFastValue ? Math.CopySign(scaled / _scale, value) : value;
         }
 
         public bool TryFormat(double value, Span<char> destination, out int charsWritten)
