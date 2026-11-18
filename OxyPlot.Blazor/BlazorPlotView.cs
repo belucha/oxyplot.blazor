@@ -317,20 +317,17 @@ public class BlazorPlotView : ComponentBase, IPlotView, IAsyncDisposable, IHandl
             builder.AddComponentParameter(20, nameof(BlazorPlotSurface.Version), _plotVersion);
             builder.CloseComponent();
 
-            var renderer = new BlazorSvgFragmentRenderContext(builder, _svg.Id, NumberFormat ?? "0.##")
-            {
-                TextMeasurer = new PdfRenderContext(_svgPos.Width, _svgPos.Height, _currentModel.Background),
-            };
-
             // zoom rectangle
             if (_zoomRectangle.Width > 0 || _zoomRectangle.Height > 0)
             {
+                var renderer = CreateRenderContext(builder, _currentModel.Background);
                 renderer.SequenceNumber = 40;
                 renderer.DrawRectangle(_zoomRectangle, OxyColor.FromArgb(0x40, 0xFF, 0xFF, 0x00), OxyColors.Black, 0.5, EdgeRenderingMode.Automatic);
             }
             // tracker
             if (_tracker != null && TrackerEnabled)
             {
+                var renderer = CreateRenderContext(builder, _currentModel.Background);
                 var backgroundColor = TrackerBackground ?? _currentModel.PlotAreaBackground;
                 var textColor = TrackerTextColor ?? _currentModel.TextColor;
                 var strokeColor = TrackerStrokeColor ?? _currentModel.PlotAreaBorderColor;
@@ -376,6 +373,12 @@ public class BlazorPlotView : ComponentBase, IPlotView, IAsyncDisposable, IHandl
         builder.CloseElement();
     }
 
+    private BlazorSvgFragmentRenderContext CreateRenderContext(RenderTreeBuilder builder, OxyColor background)
+        => new(builder, _svg.Id, NumberFormat ?? "0.##")
+        {
+            TextMeasurer = new PdfRenderContext(_svgPos.Width, _svgPos.Height, background),
+        };
+
     /// <summary>
     /// Renders the plot model, called by <see cref="BlazorPlotSurface"/>.
     /// </summary>
@@ -385,10 +388,7 @@ public class BlazorPlotView : ComponentBase, IPlotView, IAsyncDisposable, IHandl
         {
             return;
         }
-        var renderer = new BlazorSvgFragmentRenderContext(builder, _svg.Id, NumberFormat ?? "0.##")
-        {
-            TextMeasurer = new PdfRenderContext(_svgPos.Width, _svgPos.Height, plotModel.Background),
-        };
+        var renderer = CreateRenderContext(builder, plotModel.Background);
 
         plotModel.Update(updateData: _updateDataFlag);
         _updateDataFlag = false;
