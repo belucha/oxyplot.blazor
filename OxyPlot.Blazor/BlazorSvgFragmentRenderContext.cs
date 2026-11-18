@@ -536,7 +536,7 @@ namespace OxyPlot.Blazor
         }
 
         /// <summary>
-        /// Shapes drawn in one call can be written as a single path element when this does not change the output:
+        /// Shapes drawn in one call can be written as a single path element when this does not change the geometry:
         /// only the fill or only the stroke is visible and it is opaque, so overlapping shapes look the same.
         /// The precision of the number format has to be known to write the same geometry as the single elements.
         /// </summary>
