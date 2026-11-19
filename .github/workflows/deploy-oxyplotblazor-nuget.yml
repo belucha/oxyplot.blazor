@@ -42,13 +42,19 @@ jobs:
     name: Deploy package to nuget.org
     needs: get-version
     runs-on: ubuntu-latest
+    # the package is pushed with nuget.org trusted publishing, no long lived api key is stored here.
+    # the policy on nuget.org is bound to repository owner, repository and the file name of this workflow,
+    # so renaming this file breaks publishing until the policy is updated.
+    permissions:
+      id-token: write   # required to let github issue the OIDC token for NuGet/login
+      contents: read
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v5
       with:
         ref: 'refs/tags/v${{ needs.get-version.outputs.VERSION }}'
     - name: Setup dotnet version
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: |
           8.0.x
@@ -60,6 +66,13 @@ jobs:
         dotnet build -c Release /p:AssemblyVersion=${{ needs.get-version.outputs.VERSION }} /p:Version=${{ needs.get-version.outputs.VERSION }}
         dotnet pack -c Release --output nupkgs /p:PackageVersion=${{ needs.get-version.outputs.VERSION }} /p:AssemblyVersion=${{ needs.get-version.outputs.VERSION }} /p:Version=${{ needs.get-version.outputs.VERSION }}
       working-directory: ./OxyPlot.Blazor
+    # exchange the github OIDC token for an api key that is valid for one hour,
+    # therefore this runs directly before the push and not earlier
+    - name: NuGet login
+      uses: NuGet/login@v1
+      id: login
+      with:
+        user: ${{ secrets.NUGET_USER }}   # nuget.org profile name, not the email address
     - name: Publish nuget package
-      run: dotnet nuget push nupkgs/*.nupkg -k ${{ secrets.NUGET_KEY }} -s https://api.nuget.org/v3/index.json
+      run: dotnet nuget push nupkgs/*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
       working-directory: ./OxyPlot.Blazor

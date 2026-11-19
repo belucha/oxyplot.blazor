@@ -1,0 +1,37 @@
+name: build-and-test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+# a new push to a pull request cancels the run that is still going on for the previous one
+concurrency:
+  group: build-and-test-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+    - name: Setup dotnet version
+      uses: actions/setup-dotnet@v6
+      with:
+        # the library targets all four, the tests run against each of them
+        dotnet-version: |
+          8.0.x
+          9.0.x
+          10.0.x
+          11.0.x
+    - name: Build solution
+      run: dotnet build oxyplot-blazor.slnx -c Release
+    - name: Run tests
+      run: dotnet test OxyPlot.Blazor.Tests/OxyPlot.Blazor.Tests.csproj -c Release --no-build
