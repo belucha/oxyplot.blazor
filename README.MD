@@ -4,7 +4,7 @@
 
 ## Requirements
 
-- dot net 8.0 / net 9.0 / net 10.0
+- dot net 8.0 / net 9.0 / net 10.0 / net 11.0
 
 ## Usage
 
