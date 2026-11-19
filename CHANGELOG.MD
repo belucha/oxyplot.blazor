@@ -1,4 +1,9 @@
+## 2027-11-19 v2.8.0
+
 - add net11.0 support
+- render the plot only when it changed: mouse events (hover, tracker, zoom rectangle) no longer render the whole plot again
+- format svg coordinates without the .NET custom numeric format parser
+- draw the opaque markers, line segments and rectangles of one draw call as svg path elements
 
 ## 2026-05-28 v2.7.0
 

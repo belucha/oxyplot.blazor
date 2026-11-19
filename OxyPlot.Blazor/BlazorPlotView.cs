@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.AspNetCore.Components.Web;
 using System.ComponentModel.DataAnnotations;
+using System.Threading;
 using System.Threading.Tasks;
 using OxyPlot.Blazor.Services;
 using OxyPlot.Blazor.Interop;
@@ -11,10 +12,14 @@ using Microsoft.Extensions.Logging;
 
 namespace OxyPlot.Blazor;
 
-public class BlazorPlotView : ComponentBase, IPlotView, IAsyncDisposable
+public class BlazorPlotView : ComponentBase, IPlotView, IAsyncDisposable, IHandleEvent
 {
     const double TrackerOffset = 10.0;
     private ElementReference _svg;
+    /// <summary>
+    /// Incremented whenever the plot itself (not just the tracker or zoom rectangle) has to be rendered again.
+    /// </summary>
+    private int _plotVersion;
     private TrackerHitResult? _tracker;
     private PlotModel? _currentModel;
     private OxyRect _svgPos = new(0, 0, 0, 0);
@@ -89,13 +94,27 @@ public class BlazorPlotView : ComponentBase, IPlotView, IAsyncDisposable
     {
         if (!_disposed && changes.TryGetValue(_svg, out var rect))
         {
-            var r = rect.ToOxyRect();
-            if (!_svgPos.Equals(r))
+            if (UpdateSize(rect.ToOxyRect()))
             {
-                _svgPos = r;
                 StateHasChanged();
             }
         }
+    }
+
+    /// <summary>
+    /// Stores the position of the svg element.
+    /// </summary>
+    /// <returns>true if the size changed and the plot has to be rendered again</returns>
+    private bool UpdateSize(OxyRect rect)
+    {
+        // the plot depends only on the size, not on the position of the element
+        var sizeChanged = rect.Width != _svgPos.Width || rect.Height != _svgPos.Height;
+        _svgPos = rect;
+        if (sizeChanged)
+        {
+            Interlocked.Increment(ref _plotVersion);
+        }
+        return sizeChanged;
     }
 
     public ValueTask FocusAsync() => _svg.Id != null ? _svg.FocusAsync() : ValueTask.CompletedTask;
@@ -168,6 +187,7 @@ public class BlazorPlotView : ComponentBase, IPlotView, IAsyncDisposable
     public void InvalidatePlot(bool updateData)
     {
         _updateDataFlag |= updateData;
+        Interlocked.Increment(ref _plotVersion);
         InvokeAsync(StateHasChanged);
     }
 
@@ -204,6 +224,8 @@ public class BlazorPlotView : ComponentBase, IPlotView, IAsyncDisposable
 
     protected override void OnParametersSet()
     {
+        // the parent rendered again: render the plot as well, the model may have been changed without InvalidatePlot
+        Interlocked.Increment(ref _plotVersion);
         // if the svg size is specified in pixels, we can start rendering right now
         if (
             Width != null && Width.EndsWith("px") && int.TryParse(Width[..^2], out var wpx) && wpx > 0 &&
@@ -287,34 +309,25 @@ public class BlazorPlotView : ComponentBase, IPlotView, IAsyncDisposable
         {
             _svg = elementReference;
         });
-        if (_svgPos.Width > 0 && _currentModel is IPlotModel plotModel)
+        if (_svgPos.Width > 0 && _currentModel != null)
         {
-            var renderer = new BlazorSvgFragmentRenderContext(builder, _svg.Id, NumberFormat ?? "0.##")
-            {
-                TextMeasurer = new PdfRenderContext(_svgPos.Width, _svgPos.Height, plotModel.Background),
-            };
-
-            plotModel.Update(updateData: _updateDataFlag);
-            _updateDataFlag = false;
-
-            renderer.SequenceNumber = 20;
-            if (plotModel.Background != OxyColors.Transparent)
-            {
-                renderer.FillRectangle(OxyRect.Create(0, 0, _svgPos.Width, _svgPos.Height), plotModel.Background, EdgeRenderingMode.Automatic);
-            }
-            renderer.SequenceNumber = 30;
-
-            plotModel.Render(renderer, new OxyRect(0, 0, _svgPos.Width, _svgPos.Height));
+            // the plot is rendered by a child component, so that tracker and zoom rectangle updates do not render the whole plot again
+            builder.OpenComponent<BlazorPlotSurface>(18);
+            builder.AddComponentParameter(19, nameof(BlazorPlotSurface.View), this);
+            builder.AddComponentParameter(20, nameof(BlazorPlotSurface.Version), _plotVersion);
+            builder.CloseComponent();
 
             // zoom rectangle
             if (_zoomRectangle.Width > 0 || _zoomRectangle.Height > 0)
             {
+                var renderer = CreateRenderContext(builder, _currentModel.Background);
                 renderer.SequenceNumber = 40;
                 renderer.DrawRectangle(_zoomRectangle, OxyColor.FromArgb(0x40, 0xFF, 0xFF, 0x00), OxyColors.Black, 0.5, EdgeRenderingMode.Automatic);
             }
             // tracker
             if (_tracker != null && TrackerEnabled)
             {
+                var renderer = CreateRenderContext(builder, _currentModel.Background);
                 var backgroundColor = TrackerBackground ?? _currentModel.PlotAreaBackground;
                 var textColor = TrackerTextColor ?? _currentModel.TextColor;
                 var strokeColor = TrackerStrokeColor ?? _currentModel.PlotAreaBorderColor;
@@ -359,6 +372,44 @@ public class BlazorPlotView : ComponentBase, IPlotView, IAsyncDisposable
         }
         builder.CloseElement();
     }
+
+    private BlazorSvgFragmentRenderContext CreateRenderContext(RenderTreeBuilder builder, OxyColor background)
+        => new(builder, _svg.Id, NumberFormat ?? "0.##")
+        {
+            TextMeasurer = new PdfRenderContext(_svgPos.Width, _svgPos.Height, background),
+        };
+
+    /// <summary>
+    /// Renders the plot model, called by <see cref="BlazorPlotSurface"/>.
+    /// </summary>
+    internal void RenderPlot(RenderTreeBuilder builder)
+    {
+        if (_currentModel is not IPlotModel plotModel || _svgPos.Width <= 0)
+        {
+            return;
+        }
+        var renderer = CreateRenderContext(builder, plotModel.Background);
+
+        plotModel.Update(updateData: _updateDataFlag);
+        _updateDataFlag = false;
+
+        renderer.SequenceNumber = 20;
+        if (plotModel.Background != OxyColors.Transparent)
+        {
+            renderer.FillRectangle(OxyRect.Create(0, 0, _svgPos.Width, _svgPos.Height), plotModel.Background, EdgeRenderingMode.Automatic);
+        }
+        renderer.SequenceNumber = 30;
+
+        plotModel.Render(renderer, new OxyRect(0, 0, _svgPos.Width, _svgPos.Height));
+    }
+
+    /// <summary>
+    /// Mouse and keyboard events are forwarded to the plot controller, which requests the rendering it needs
+    /// (<see cref="InvalidatePlot"/>, <see cref="ShowTracker"/>, <see cref="ShowZoomRectangle"/>, ...).
+    /// <see cref="ComponentBase"/> would render the whole plot again after every event, e.g. on every mouse move.
+    /// </summary>
+    Task IHandleEvent.HandleEventAsync(EventCallbackWorkItem callback, object? arg) => callback.InvokeAsync(arg);
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -368,8 +419,10 @@ public class BlazorPlotView : ComponentBase, IPlotView, IAsyncDisposable
                 try
                 {
                     var size = await _resizeObserver.Observe(_svg);
-                    _svgPos = size != null ? size.ToOxyRect() : new OxyRect(0, 0, 0, 0);
-                    StateHasChanged();
+                    if (UpdateSize(size != null ? size.ToOxyRect() : new OxyRect(0, 0, 0, 0)))
+                    {
+                        StateHasChanged();
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -489,6 +542,7 @@ public class BlazorPlotView : ComponentBase, IPlotView, IAsyncDisposable
     }
     private void HandleKeyDownEvent(KeyboardEventArgs e)
     {
+        var preventKey = _preventKey;
         var oxyKey = ParseKey(e.Key);
         if (oxyKey != OxyKey.Unknown)
         {
@@ -502,6 +556,11 @@ public class BlazorPlotView : ComponentBase, IPlotView, IAsyncDisposable
         else
         {
             _preventKey = false;
+        }
+        if (preventKey != _preventKey)
+        {
+            // update the preventDefault flag of the keydown handler
+            StateHasChanged();
         }
     }
 
