@@ -44,3 +44,8 @@ The plot is rendered as SVG, every data point ends up in the DOM. Some tips for 
 - For line series with many more points than horizontal pixels, set `LineSeries.Decimator = Decimator.Decimate`.
   It keeps the minimum and maximum of each pixel column, the line looks the same, but the browser has far fewer points to draw.
 - Use Blazor WebAssembly AOT compilation (`<RunAOTCompilation>true</RunAOTCompilation>`) for interactive plots with many points.
+
+
+## Contributors
+
+- VaclavKosak (http://vaclavkosak.cz/)
