@@ -1,3 +1,10 @@
+## 2026-11-19 v2.8.2
+
+- the resize observer no longer swallows every exception: a disconnected circuit stays silent, any other
+  error is passed on to the plot view again, which logs it, instead of leaving an empty plot behind
+- a failing cursor update is logged instead of escaping `SetCursorType`, which is an async void method
+- internal: unit tests for the svg number formatting, the solution is built and tested on every pull request
+
 ## 2026-11-19 v2.8.1
 
 - merged #23: support Blazor WebAssembly by referencing Microsoft.AspNetCore.Components.Web instead of the
