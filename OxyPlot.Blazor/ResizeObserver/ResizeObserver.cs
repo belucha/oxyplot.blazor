@@ -38,10 +38,13 @@ namespace OxyPlot.Blazor.Services
         private async ValueTask<IJSObjectReference> GetModuleAsync()
         {
             // Return cached reference if it already exists
+            // suppress BL0016: GetModuleAsync is only called guarded itself
+#pragma warning disable BL0016
             _module ??= await _jsRuntime.InvokeAsync<IJSObjectReference>(
                 "import",
                 "./_content/OxyPlot.Blazor/OxyPlot.Blazor.js"
             ).ConfigureAwait(false);
+#pragma warning restore BL0016
             return _module;
         }
 
@@ -53,30 +56,38 @@ namespace OxyPlot.Blazor.Services
 
         public async Task<IEnumerable<BoundingClientRect>> Observe(IEnumerable<ElementReference> elements)
         {
-            var filteredElements = elements.Where(x => x.Context != null && _cachedValues.ContainsKey(x) == false).ToList();
-            if (filteredElements.Any() == false)
+            try
             {
+                var filteredElements = elements.Where(x => x.Context != null && _cachedValues.ContainsKey(x) == false).ToList();
+                if (filteredElements.Any() == false)
+                {
+                    return Array.Empty<BoundingClientRect>();
+                }
+
+                List<Guid> elementIds = new();
+
+                foreach (var item in filteredElements)
+                {
+                    var id = Guid.NewGuid();
+                    elementIds.Add(id);
+                    _cachedValueIds.Add(id, item);
+                }
+                var js = await GetModuleAsync().ConfigureAwait(false);
+                var result = await js.InvokeAsync<IEnumerable<BoundingClientRect>>("connect", _id, _dotNetRef, filteredElements, elementIds, _options).ConfigureAwait(false) ?? Array.Empty<BoundingClientRect>();
+                var counter = 0;
+                foreach (var item in result)
+                {
+                    _cachedValues.Add(filteredElements.ElementAt(counter), item);
+                    counter++;
+                }
+
+                return result;
+            }
+            catch
+            {
+                // Suppress all JS interop exceptions (including disconnections and runtime errors)
                 return Array.Empty<BoundingClientRect>();
             }
-
-            List<Guid> elementIds = new();
-
-            foreach (var item in filteredElements)
-            {
-                var id = Guid.NewGuid();
-                elementIds.Add(id);
-                _cachedValueIds.Add(id, item);
-            }
-            var js = await GetModuleAsync().ConfigureAwait(false);
-            var result = await js.InvokeAsync<IEnumerable<BoundingClientRect>>("connect", _id, _dotNetRef, filteredElements, elementIds, _options).ConfigureAwait(false) ?? Array.Empty<BoundingClientRect>();
-            var counter = 0;
-            foreach (var item in result)
-            {
-                _cachedValues.Add(filteredElements.ElementAt(counter), item);
-                counter++;
-            }
-
-            return result;
         }
 
         public async Task Unobserve(ElementReference element)
@@ -142,8 +153,15 @@ namespace OxyPlot.Blazor.Services
         {
             if (!_disposed)
             {
-                var js = await GetModuleAsync().ConfigureAwait(false);
-                await js.InvokeVoidAsync("setCursor", element, cursorName).ConfigureAwait(false);
+                try
+                {
+                    var js = await GetModuleAsync().ConfigureAwait(false);
+                    await js.InvokeVoidAsync("setCursor", element, cursorName).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // suppress all JS interop exceptions (including disconnections and runtime errors)
+                }
             }
         }
 

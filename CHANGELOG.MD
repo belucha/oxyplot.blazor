@@ -1,3 +1,8 @@
+## 2027-11-19 v2.8.1
+
+- code cleanup, supress some warnings
+- merged !23 and !24
+
 ## 2027-11-19 v2.8.0
 
 - add net11.0 support
