@@ -11,6 +11,12 @@ namespace OxyPlot.Blazor
     /// Formats of the form "0", "0.#", "0.##", ... are formatted by a simple integer based algorithm.
     /// The .NET custom numeric format parser is very slow on WebAssembly, where it dominated the rendering time
     /// of plots with thousands of points. Any other format falls back to <see cref="double.TryFormat(Span{char}, out int, ReadOnlySpan{char}, IFormatProvider?)"/>.
+    /// <para>
+    /// The fast path writes exactly the same text as the .NET format while <c>|value| * 10^decimals &lt;= 1e10</c>
+    /// - a coordinate of a 4000 pixel wide plot with the default "0.##" reaches 4e5 - above that bound the last
+    /// written decimal can differ by one. A value that rounds to zero is written as "0", the .NET format writes
+    /// "-0" for a negative one. Both deviations are pinned by OxyPlot.Blazor.Tests.SvgNumberFormatterTests.
+    /// </para>
     /// </remarks>
     internal readonly struct SvgNumberFormatter
     {

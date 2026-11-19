@@ -56,22 +56,22 @@ namespace OxyPlot.Blazor.Services
 
         public async Task<IEnumerable<BoundingClientRect>> Observe(IEnumerable<ElementReference> elements)
         {
+            var filteredElements = elements.Where(x => x.Context != null && _cachedValues.ContainsKey(x) == false).ToList();
+            if (filteredElements.Any() == false)
+            {
+                return Array.Empty<BoundingClientRect>();
+            }
+
+            List<Guid> elementIds = new();
+
+            foreach (var item in filteredElements)
+            {
+                var id = Guid.NewGuid();
+                elementIds.Add(id);
+                _cachedValueIds.Add(id, item);
+            }
             try
             {
-                var filteredElements = elements.Where(x => x.Context != null && _cachedValues.ContainsKey(x) == false).ToList();
-                if (filteredElements.Any() == false)
-                {
-                    return Array.Empty<BoundingClientRect>();
-                }
-
-                List<Guid> elementIds = new();
-
-                foreach (var item in filteredElements)
-                {
-                    var id = Guid.NewGuid();
-                    elementIds.Add(id);
-                    _cachedValueIds.Add(id, item);
-                }
                 var js = await GetModuleAsync().ConfigureAwait(false);
                 var result = await js.InvokeAsync<IEnumerable<BoundingClientRect>>("connect", _id, _dotNetRef, filteredElements, elementIds, _options).ConfigureAwait(false) ?? Array.Empty<BoundingClientRect>();
                 var counter = 0;
@@ -83,12 +83,29 @@ namespace OxyPlot.Blazor.Services
 
                 return result;
             }
-            catch
+            catch (Exception ex)
             {
-                // Suppress all JS interop exceptions (including disconnections and runtime errors)
-                return Array.Empty<BoundingClientRect>();
+                // the ids were registered for a connect that did not happen
+                foreach (var id in elementIds)
+                {
+                    _cachedValueIds.Remove(id);
+                }
+                if (IsTeardown(ex))
+                {
+                    // the circuit is gone, there is nothing left to observe
+                    return Array.Empty<BoundingClientRect>();
+                }
+                // anything else is a real error. The caller logs it, swallowing it here would only
+                // leave an empty plot behind without a trace of what went wrong.
+                throw;
             }
         }
+
+        /// <summary>
+        /// Is this an exception that is expected while the circuit or the component is going away?
+        /// </summary>
+        private static bool IsTeardown(Exception exception)
+            => exception is JSDisconnectedException or ObjectDisposedException or OperationCanceledException;
 
         public async Task Unobserve(ElementReference element)
         {
@@ -158,9 +175,10 @@ namespace OxyPlot.Blazor.Services
                     var js = await GetModuleAsync().ConfigureAwait(false);
                     await js.InvokeVoidAsync("setCursor", element, cursorName).ConfigureAwait(false);
                 }
-                catch
+                catch (Exception ex) when (IsTeardown(ex))
                 {
-                    // suppress all JS interop exceptions (including disconnections and runtime errors)
+                    // the circuit is gone or going away, the cursor does not matter any more.
+                    // a real error is passed on to the caller, which logs it.
                 }
             }
         }

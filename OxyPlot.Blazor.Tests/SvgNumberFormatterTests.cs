@@ -144,7 +144,7 @@ public class SvgNumberFormatterTests
 
     [Theory]
     [InlineData("0.##", 1.5, "1.5")]
-    [InlineData("0.##", 1.50, "1.5")]
+    [InlineData("0.##", 1.501, "1.5")]
     [InlineData("0.##", 2.0, "2")]
     [InlineData("0.##", 2.001, "2")]
     [InlineData("0.##", 2.005, "2.01")]

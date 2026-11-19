@@ -38,9 +38,17 @@ jobs:
       run: |
         echo "VERSION=${{ env.VERSION }}" >> $GITHUB_OUTPUT
 
+  # nothing is published that does not build and pass the tests
+  build-and-test:
+    name: Build and test
+    needs: get-version
+    uses: ./.github/workflows/build-and-test.yml
+    with:
+      ref: 'refs/tags/v${{ needs.get-version.outputs.VERSION }}'
+
   deploy-nuget:
     name: Deploy package to nuget.org
-    needs: get-version
+    needs: [get-version, build-and-test]
     runs-on: ubuntu-latest
     # the package is pushed with nuget.org trusted publishing, no long lived api key is stored here.
     # the policy on nuget.org is bound to repository owner, repository and the file name of this workflow,

@@ -1,14 +1,13 @@
-## 2027-11-19 v2.8.1
+## 2026-11-19 v2.8.1
 
-- code cleanup, supress some warnings
-- merged !23 and !24
-
-## 2027-11-19 v2.8.0
-
-- add net11.0 support
-- render the plot only when it changed: mouse events (hover, tracker, zoom rectangle) no longer render the whole plot again
-- format svg coordinates without the .NET custom numeric format parser
-- draw the opaque markers, line segments and rectangles of one draw call as svg path elements
+- merged #23: support Blazor WebAssembly by referencing Microsoft.AspNetCore.Components.Web instead of the
+  Microsoft.AspNetCore.App shared framework, which has no browser-wasm runtime pack
+- merged #24: add net11.0 support
+- merged #25: render the plot only when it changed, mouse events (hover, tracker, zoom rectangle) no longer
+  render the whole plot again
+- merged #25: format svg coordinates without the .NET custom numeric format parser
+- merged #25: draw the opaque markers, line segments and rectangles of one draw call as svg path elements
+- code cleanup, suppress some warnings
 
 ## 2026-05-28 v2.7.0
 

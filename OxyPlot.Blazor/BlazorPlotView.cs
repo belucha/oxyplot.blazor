@@ -199,7 +199,16 @@ public class BlazorPlotView : ComponentBase, IPlotView, IAsyncDisposable, IHandl
     {
         if (!_disposed && _resizeObserver != null)
         {
-            await _resizeObserver.SetCursor(_svg, TranslateCursorType(cursorType));
+            try
+            {
+                await _resizeObserver.SetCursor(_svg, TranslateCursorType(cursorType));
+            }
+            catch (Exception ex)
+            {
+                // IPlotView.SetCursorType is void, so this is an async void method: an exception
+                // escaping it would not be observed by anyone and tears down the circuit
+                Logger.LogError(ex, "Failed to set the cursor!");
+            }
         }
     }
 
